@@ -10,10 +10,13 @@ no_cache = 1
 
 
 def get_context():
+	if frappe.session.user == "Guest":
+		frappe.local.flags.redirect_location = "/patient-registration"
+		raise frappe.Redirect
+
 	context = frappe._dict()
 	context.boot = get_boot()
-	if frappe.session.user != "Guest":
-		capture("active_site", "patient_portal")
+	capture("active_site", "patient_portal")
 	return context
 
 
