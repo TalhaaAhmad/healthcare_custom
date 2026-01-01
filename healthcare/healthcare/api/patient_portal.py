@@ -81,11 +81,15 @@ def get_practitioners(department):
 
 @frappe.whitelist()
 def get_patients():
-	return frappe.db.get_all(
+	patient_names = get_patients_with_relations()
+	patients = frappe.db.get_all(
 		"Patient",
-		filters={"status": "Active", "name": ["in", get_patients_with_relations()]},
+		filters={"name": ["in", patient_names]},
 		fields=["name as value", "patient_name as label"],
 	)
+
+	patients.append({"value": "new", "label": _("Someone Else")})
+	return patients
 
 
 @frappe.whitelist()
@@ -140,7 +144,41 @@ def get_slots(practitioner, date):
 	return full_slots if len(full_slots) > 0 else None
 
 @frappe.whitelist(methods=["POST"])
-def make_appointment(practitioner, patient, date, slot):
+def make_appointment(practitioner, patient, date, slot, relative_details=None):
+	if patient == "new":
+		if not relative_details:
+			frappe.throw(_("Relative details are required when booking for someone else."))
+		
+		if isinstance(relative_details, str):
+			relative_details = json.loads(relative_details)
+
+		# Get current user's patient and customer
+		user_patient_name = frappe.db.get_value("Patient", {"user_id": frappe.session.user}, "name")
+		if not user_patient_name:
+			frappe.throw(_("Primary patient record not found for the current user."))
+
+		user_patient = frappe.get_doc("Patient", user_patient_name)
+		customer = user_patient.customer
+
+		# Create new patient record for the relative
+		new_patient = frappe.new_doc("Patient")
+		new_patient.first_name = relative_details.get("first_name")
+		new_patient.last_name = relative_details.get("last_name")
+		new_patient.sex = relative_details.get("sex")
+		new_patient.dob = relative_details.get("dob")
+		new_patient.customer = customer
+		new_patient.status = "Active"
+		new_patient.insert(ignore_permissions=True)
+
+		# Add to current user's patient relations
+		user_patient.append("patient_relation", {
+			"patient": new_patient.name,
+			"relation": relative_details.get("relation") or "Other"
+		})
+		user_patient.save(ignore_permissions=True)
+
+		patient = new_patient.name
+
 	doc = frappe.new_doc("Patient Appointment")
 	
 	# Get first available appointment type (v15 compatible)

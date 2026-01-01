@@ -68,7 +68,7 @@
 								<div class="flex-grow border-t border-gray-200"></div>
 							</div>
 
-							<div class="flex items-center justify-center w-full py-4">
+							<div class="flex flex-col items-center justify-center w-full px-4 py-4 space-y-4">
 								<FormControl
 									v-model="selectedPatient"
 									type="autocomplete"
@@ -77,6 +77,45 @@
 									size="lg"
 									:disabled="patientOptions.length == 1"
 								/>
+
+								<div v-if="isNewPatient" class="w-full space-y-3 animate-fade-in">
+									<FormControl
+										v-model="relativeDetails.first_name"
+										label="First Name"
+										placeholder="e.g. John"
+										size="sm"
+										required
+									/>
+									<FormControl
+										v-model="relativeDetails.last_name"
+										label="Last Name"
+										placeholder="e.g. Doe"
+										size="sm"
+									/>
+									<div class="grid grid-cols-2 gap-2">
+										<FormControl
+											v-model="relativeDetails.sex"
+											type="select"
+											label="Gender"
+											:options="['Male', 'Female', 'Other']"
+											size="sm"
+											required
+										/>
+										<FormControl
+											v-model="relativeDetails.relation"
+											type="select"
+											label="Relation"
+											:options="['Father', 'Mother', 'Spouse', 'Siblings', 'Family', 'Other']"
+											size="sm"
+										/>
+									</div>
+									<FormControl
+										v-model="relativeDetails.dob"
+										type="date"
+										label="Date of Birth"
+										size="sm"
+									/>
+								</div>
 							</div>
 						</div>
 
@@ -249,8 +288,22 @@ const selectedDepartment = ref(null);
 const selectedPractitioner = ref(null);
 const selectedDate = ref(null);
 let selectedSlot = ref(null);
+
+const isNewPatient = computed(() => {
+	const val = selectedPatient.value?.value || selectedPatient.value;
+	return val === 'new';
+})
+
 let practitioner = ref(null);
 let appointment = ref(null);
+
+const relativeDetails = ref({
+	first_name: '',
+	last_name: '',
+	sex: '',
+	dob: '',
+	relation: ''
+})
 
 let alert_dialog = ref(false);
 let show_calendar = ref(false);
@@ -377,9 +430,9 @@ function fetchPractitioners(deptName) {
 	get_practitioners.fetch();
 }
 
-function fetchSlots(date) {
+async function fetchSlots(date) {
 	error.value = null;
-	let get_practitioners = createResource({
+	let slotResource = createResource({
 		url: "/api/method/healthcare.healthcare.api.patient_portal.get_slots",
 		method: "GET",
 		makeParams() {
@@ -389,15 +442,15 @@ function fetchSlots(date) {
 			};
 		},
 		onSuccess(response) {
-			if (response) {
-				slots.value = response;
+			if (date === selectedDate.value) {
+				slots.value = response || [];
 			}
 		},
 		onError(e) {
 			error.value = e.messages?.[0] || e;
 		}
 	});
-	get_practitioners.fetch();
+	await slotResource.fetch();
 }
 
 function get_fees(pract, date) {
@@ -427,16 +480,24 @@ function get_fees(pract, date) {
 
 async function bookSlot() {
 	error.value = null;
+	if (isNewPatient.value) {
+		if (!relativeDetails.value.first_name || !relativeDetails.value.sex) {
+			error.value = "Please fill in the relative's first name and gender.";
+			return;
+		}
+	}
 	if (selectedSlot.value.slot) {
 		const bookAppointment = createResource({
 			url: "/api/method/healthcare.healthcare.api.patient_portal.make_appointment",
 			method: "POST",
 			makeParams() {
+				const patientValue = selectedPatient.value?.value || selectedPatient.value;
 				return {
 					practitioner: selectedPractitioner.value?.name,
-					patient: selectedPatient.value?.value || null,
+					patient: patientValue,
 					date: selectedDate.value,
 					slot: selectedSlot.value.slot,
+					relative_details: patientValue === 'new' ? relativeDetails.value : null
 				};
 			},
 			onSuccess(response) {
@@ -501,6 +562,7 @@ function goToPrevious() {
 
 watch(selectedDate, async (date) => {
 	selectedSlot.value = null;
+	slots.value = [];
 	if (date) {
 		await fetchSlots(date);
 	} else {
@@ -511,6 +573,7 @@ watch(selectedDate, async (date) => {
 
 watch(selectedTimezone, async (timezone) => {
 	selectedSlot.value = null;
+	slots.value = [];
 	if (timezone && selectedDate.value) {
 		await fetchSlots(selectedDate.value);
 	} else {
@@ -520,16 +583,24 @@ watch(selectedTimezone, async (timezone) => {
 
 // Group slots by time of day
 const groupedSlots = computed(() => {
-	let groups = { "Morning": [], "Afternoon": [], "Evening": [] }
+	const groups = { "Morning": [], "Afternoon": [], "Evening": [] }
 
-	if (!slots.value || !selectedTimezone.value) {
+	if (!slots.value.length || !selectedTimezone.value || !selectedDate.value) {
 		return groups;
 	}
 
+	const selected = new Date(selectedDate.value)
+
 	slots.value.forEach(slot => {
 		const [hour, minute] = slot.split(':').map(Number);
-		const now = new Date();
-		const serverTime = new Date(now.getFullYear(), now.getMonth(), now.getDate(), hour, minute);
+		
+		const serverTime = new Date(
+			selected.getFullYear(),
+			selected.getMonth(),
+			selected.getDate(),
+			hour,
+			minute
+		);
 
 		// Convert the server time to the user's selected timezone
 		const userTime = new Date(serverTime.toLocaleString('en-US', { timeZone: selectedTimezone.value }));
@@ -538,7 +609,7 @@ const groupedSlots = computed(() => {
 
 		const formattedTime = `${userHour}:${userminute}`;
 		const slotes_with_formatted = {"formattedTime": formattedTime, "slot": slot}
-		// Push the original slot time to the appropriate group based on the converted time
+		
 		if (userHour < 12) groups.Morning.push(slotes_with_formatted);
 		else if (userHour < 17) groups.Afternoon.push(slotes_with_formatted);
 		else groups.Evening.push(slotes_with_formatted);
