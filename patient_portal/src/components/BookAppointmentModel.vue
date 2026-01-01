@@ -646,7 +646,7 @@ const paymentLink = createResource({
 			amount: totalFee.value,
 			total_amount: totalFee.value,
 			currency: currency.value,
-			patient: selectedPatient.value?.value,
+			patient: appointment.value?.patient,
 			redirect_to: '/patient-portal',
 		}
 	},
