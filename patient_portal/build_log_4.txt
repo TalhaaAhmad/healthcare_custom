@@ -1,0 +1,24 @@
+yarn run v1.22.22
+$ vite build --base=/assets/healthcare/patient_portal/
+vite v4.4.9 building for production...
+transforming...
+✓ 29 modules transformed.
+✓ built in 1.81s
+[vite]: Rollup failed to resolve import "date-fns" from "/home/frappe-user/frappe-bench/apps/healthcare/patient_portal/src/components/BookTherapyPlanModel.vue".
+This is most likely unintended because it can break your application at runtime.
+If you do want to externalize this module explicitly add it to
+`build.rollupOptions.external`
+error during build:
+Error: [vite]: Rollup failed to resolve import "date-fns" from "/home/frappe-user/frappe-bench/apps/healthcare/patient_portal/src/components/BookTherapyPlanModel.vue".
+This is most likely unintended because it can break your application at runtime.
+If you do want to externalize this module explicitly add it to
+`build.rollupOptions.external`
+    at viteWarn (file:///home/frappe-user/frappe-bench/apps/healthcare/patient_portal/node_modules/vite/dist/node/chunks/dep-df561101.js:48142:27)
+    at onRollupWarning (file:///home/frappe-user/frappe-bench/apps/healthcare/patient_portal/node_modules/vite/dist/node/chunks/dep-df561101.js:48174:9)
+    at onwarn (file:///home/frappe-user/frappe-bench/apps/healthcare/patient_portal/node_modules/vite/dist/node/chunks/dep-df561101.js:47902:13)
+    at file:///home/frappe-user/frappe-bench/apps/healthcare/patient_portal/node_modules/rollup/dist/es/shared/node-entry.js:24276:13
+    at Object.logger [as onLog] (file:///home/frappe-user/frappe-bench/apps/healthcare/patient_portal/node_modules/rollup/dist/es/shared/node-entry.js:25950:9)
+    at ModuleLoader.handleInvalidResolvedId (file:///home/frappe-user/frappe-bench/apps/healthcare/patient_portal/node_modules/rollup/dist/es/shared/node-entry.js:24862:26)
+    at file:///home/frappe-user/frappe-bench/apps/healthcare/patient_portal/node_modules/rollup/dist/es/shared/node-entry.js:24822:26
+error Command failed with exit code 1.
+info Visit https://yarnpkg.com/en/docs/cli/run for documentation about this command.

@@ -1,195 +1,203 @@
 <template>
-	<div class="h-screen flex flex-col bg-gray-50">
-		<!-- Header -->
-		<header class="flex items-center justify-between px-6 py-4 bg-white border-b shadow-sm shrink-0">
-			<div class="flex items-center gap-4">
-				<h1 class="text-xl font-bold text-gray-900">Patient Portal</h1>
-			</div>
+	<!-- Standardized Slate-50 Background for a quiet feel -->
+	<div class="h-screen flex flex-col bg-slate-50 font-sans antialiased text-slate-600">
+		
+		<!-- Compact Studio Header (Slimmer py-2.5) -->
+		<header class="sticky top-0 w-full z-[100] bg-white/70 backdrop-blur-md border-b border-slate-200/60 px-6 lg:px-10 py-2.5">
+			<div class="max-w-[1400px] mx-auto flex items-center justify-between">
+				
+				<!-- Precise Brand Identity -->
+				<div class="flex items-center gap-3.5 group cursor-pointer" @click="router.push('/')">
+					<div class="w-8 h-8 bg-slate-900 rounded-lg flex items-center justify-center shadow-md transition-transform group-hover:scale-105">
+						<ActivityIcon class="w-4 h-4 text-white" />
+					</div>
+					<div class="hidden xs:block">
+						<h1 class="text-xs font-black text-slate-900 uppercase tracking-tighter">Portal</h1>
+						<p class="text-[8px] font-bold text-slate-400 uppercase tracking-[0.2em]">Medical</p>
+					</div>
+				</div>
 
-			<div class="flex items-center gap-4">
-				<!-- Registration CTA for logged in users who are NOT patients -->
-				<Button
-					v-if="!isGuest && !patient"
-					variant="outline"
-					@click="goToRegistration"
-				>
-					Register as Patient
-				</Button>
+				<!-- Slim Capsule Nav -->
+				<nav class="hidden lg:flex items-center gap-1 p-0.5 bg-slate-100/80 rounded-xl border border-slate-200/50">
+					<router-link 
+						v-for="nav in [{label: 'Home', path: '/'}, {label: 'Dashboard', path: '/dashboard'}]" 
+						:key="nav.path"
+						:to="nav.path" 
+						class="px-5 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-widest transition-all"
+						:class="route.path === nav.path 
+							? 'bg-white text-slate-900 shadow-sm' 
+							: 'text-slate-400 hover:text-slate-600'"
+					>
+						{{ nav.label }}
+					</router-link>
+				</nav>
 
-				<Dropdown
-					v-if="!isGuest"
-					:options="userMenuOptions"
-				>
-					<template #target>
-						<div class="flex items-center gap-3 cursor-pointer group">
-							<div class="text-right hidden sm:block">
-								<p class="text-sm font-medium text-gray-900">{{ userInfo.full_name }}</p>
-								<p class="text-xs text-gray-500">{{ userInfo.email }}</p>
-							</div>
-							<Avatar
-								:image="userInfo.image"
-								:label="userInfo.full_name"
-								size="lg"
-								class="border group-hover:border-gray-300 transition-colors"
-							/>
-						</div>
-					</template>
-				</Dropdown>
+				<!-- User & Actions -->
+				<div class="flex items-center gap-4">
+					
+					<!-- Subtle Registration Link -->
+					<button
+						v-if="!isGuest && !patient"
+						@click="goToRegistration"
+						class="hidden md:block text-[10px] font-bold text-slate-400 uppercase tracking-widest hover:text-brand-orange transition-colors"
+					>
+						Register Patient
+					</button>
 
-				<Button
-					v-if="isGuest"
-					variant="solid"
-					@click="goToLogin"
-				>
-					Login
-				</Button>
+					<!-- Compact User Dropdown -->
+					<div v-if="!isGuest" class="flex items-center">
+						<Dropdown :options="userMenuOptions">
+							<template #target>
+								<button class="flex items-center gap-2 group">
+									<Avatar
+										:image="userInfo.image"
+										:label="userInfo.full_name"
+										size="sm"
+										class="rounded-lg border border-slate-100 shadow-sm"
+									/>
+									<ChevronDownIcon class="w-3 h-3 text-slate-300 group-hover:text-slate-600 transition-colors" />
+								</button>
+							</template>
+						</Dropdown>
+					</div>
+
+					<!-- Compact Login -->
+					<button
+						v-if="isGuest"
+						@click="goToLogin"
+						class="px-6 py-2 rounded-lg bg-slate-900 text-white text-[10px] font-bold uppercase tracking-widest hover:bg-slate-800 transition-all shadow-sm"
+					>
+						Login
+					</button>
+				</div>
 			</div>
 		</header>
 
-		<!-- Breadcrumbs -->
-		<nav class="flex px-6 py-2 bg-white border-b overflow-x-auto whitespace-nowrap shrink-0" aria-label="Breadcrumb">
-			<ol class="inline-flex items-center space-x-2">
-				<li class="inline-flex items-center">
-					<a href="/me" class="inline-flex items-center text-xs font-medium text-gray-500 hover:text-gray-900 transition-colors">
-						<FeatherIcon name="home" class="w-3.5 h-3.5 mr-1.5" />
-						Home
-					</a>
-				</li>
-				<li v-for="(tab, index) in tabs" :key="tab.label" v-show="portal_tabs === index">
-					<div class="flex items-center">
-						<FeatherIcon name="chevron-right" class="w-4 h-4 text-gray-400" />
-						<span class="ml-1.5 text-xs font-semibold text-gray-900 capitalize">{{ tab.label }}</span>
-					</div>
-				</li>
-			</ol>
-		</nav>
-
-		<!-- Main Content -->
-		<main class="flex-1 overflow-y-auto p-6 bg-gray-50/50">
-			<div class="max-w-6xl mx-auto">
-				<Tabs as="div" v-model="portal_tabs" :tabs="tabs">
-					<template #tab-panel="{ tab }">
-						<div v-if="tab.label == 'Appointments'" class="py-4">
-							<AppointmentModel />
-						</div>
-						<div v-else-if="tab.label == 'Diagnostics'" class="py-4">
-							<DiagnosticModel />
-						</div>
-					</template>
-				</Tabs>
+		<!-- Main content handles the page-level scrolling -->
+		<main class="flex-1 overflow-y-auto custom-scrollbar">
+			<div class="max-w-[1400px] mx-auto w-full min-h-full">
+				<router-view v-slot="{ Component }">
+					<transition 
+						name="page-fade" 
+						mode="out-in" 
+						appear
+					>
+						<component :is="Component" />
+					</transition>
+				</router-view>
 			</div>
 		</main>
+
+		<!-- Minimalist Utility Footer -->
+		<footer class="px-10 py-4 bg-white border-t border-slate-100 flex items-center justify-between">
+			<div class="flex items-center gap-1.5">
+				<div class="w-1 h-1 rounded-full bg-slate-300"></div>
+				<p class="text-[9px] font-bold text-slate-300 uppercase tracking-[0.2em]">© 2026 Patient Portal</p>
+			</div>
+			<div class="flex gap-5">
+				<a href="#" class="text-[9px] font-bold text-slate-300 uppercase tracking-widest hover:text-slate-600">Privacy</a>
+				<a href="#" class="text-[9px] font-bold text-slate-300 uppercase tracking-widest hover:text-slate-600">Support</a>
+			</div>
+		</footer>
 	</div>
 
-	<Dialog :options="{
-		title: dialog_title,
-		message: dialog_message,
-		size: 'xl',
-		icon: {
-			name: 'alert-triangle',
-			appearance: 'warning',
-		},
-		actions: [
-			{
-				label: 'OK',
-				variant: 'solid',
-			},
-		],
-	}" v-model="alert_dialog" @click="alert_dialog = false" />
+	<!-- Alert Dialog -->
+	<Teleport to="body">
+		<Dialog :options="{
+			title: dialog_title,
+			message: dialog_message,
+			size: 'sm',
+			icon: { name: 'alert-circle', appearance: 'warning' },
+			actions: [{ label: 'OK', variant: 'solid', theme: 'gray' }]
+		}" v-model="alert_dialog" />
+	</Teleport>
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
-import AppointmentModel from '@/components/AppointmentModel.vue'
-import DiagnosticModel from '@/components/DiagnosticModel.vue'
-
+import { ref, computed, onMounted } from 'vue'
+import { useRouter, useRoute } from 'vue-router'
+import { ActivityIcon, ChevronDownIcon } from 'lucide-vue-next'
 import {
 	createResource,
-	Tabs,
 	Dialog,
-	Button,
 	Avatar,
-	Dropdown,
+	Dropdown
 } from 'frappe-ui'
 
-const alert_dialog = ref(false);
-const portal_tabs = ref(0);
-const dialog_title = ref("");
-const dialog_message = ref("");
+const router = useRouter()
+const route = useRoute()
 
-const healthcareSettings = ref({});
-const patient = ref(JSON.parse(localStorage.getItem("patient")));
+const alert_dialog = ref(false)
+const dialog_title = ref("")
+const dialog_message = ref("")
 
-// Boot data from window
-const bootData = window.frappe_boot || {};
-const isGuest = computed(() => bootData.is_guest);
-const userInfo = computed(() => bootData.user_info || {});
+// Authentication & Patient Data Logic
+const bootData = window.frappe_boot || {}
+const isGuest = computed(() => bootData.is_guest)
+const userInfo = computed(() => bootData.user_info || {})
+const patient = ref(JSON.parse(localStorage.getItem("patient")))
 
 const userMenuOptions = [
-	{
-		label: 'Logout',
-		onClick: () => {
-			window.location.href = '/api/method/logout';
-		},
-		icon: 'log-out'
-	}
+	{ label: 'Portal Home', onClick: () => router.push('/'), icon: 'home' },
+	{ label: 'Appointments', onClick: () => router.push('/dashboard'), icon: 'calendar' },
+	{ label: 'Logout', onClick: () => window.location.href = '/api/method/logout', icon: 'log-out' }
 ]
-
-const getHealthcareSettings = createResource({
-	url: "/api/method/healthcare.healthcare.api.patient_portal.get_settings",
-	method: "GET",
-	onSuccess(response) {
-		if (response) {
-			healthcareSettings.value = response
-		}
-	},
-});
-getHealthcareSettings.fetch();
-
-const tabs = computed(() => {
-	let baseTabs = [{ label: 'Appointments' }]
-	if (healthcareSettings.value.show_diagnostics_tab) {
-		baseTabs.push({ label: 'Diagnostics' })
-	}
-	return baseTabs
-})
 
 const get_logged_in_patient = createResource({
 	url: "/api/method/healthcare.healthcare.api.patient_portal.get_logged_in_patient",
-	method: "GET",
 	onSuccess(response) {
 		if (response) {
-			patient.value = response;
-			localStorage.setItem("patient", JSON.stringify(response));
-		} else {
-			patient.value = null;
-			localStorage.removeItem("patient");
+			patient.value = response
+			localStorage.setItem("patient", JSON.stringify(response))
 		}
-	},
-	onError(error) {
-		console.error("Failed to load patient info", error);
 	}
-});
+})
 
-if (!isGuest.value) {
-	get_logged_in_patient.fetch();
-}
+onMounted(() => {
+	if (!isGuest.value) get_logged_in_patient.fetch()
+})
 
-const goToLogin = () => {
-	window.location.href = '/login?redirect-to=/patient_portal';
-}
-
-const goToRegistration = () => {
-	window.location.href = '/patient-registration';
-}
-
+const goToLogin = () => window.location.href = '/login?redirect-to=/patient_portal'
+const goToRegistration = () => window.location.href = '/patient-registration'
 </script>
 
-<style scoped>
-/* Ensure the app takes full height */
-:deep(body), :deep(html), #app {
+<style>
+/* Refined Scrollbar */
+.custom-scrollbar::-webkit-scrollbar {
+	width: 4px;
+}
+.custom-scrollbar::-webkit-scrollbar-track {
+	background: transparent;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb {
+	background: #e2e8f0;
+	border-radius: 4px;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+	background: #cbd5e1;
+}
+
+/* Minimal Smooth Transitions */
+.page-fade-enter-active, .page-fade-leave-active {
+	transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.page-fade-enter-from {
+	opacity: 0;
+	transform: translateY(4px);
+}
+.page-fade-leave-to {
+	opacity: 0;
+	transform: translateY(-4px);
+}
+
+/* Base resets to avoid scaling issues */
+html, body, #app {
 	height: 100%;
-	margin: 0;
-	padding: 0;
+	font-size: 14px; /* Standard base font size */
+}
+
+/* Ensure Dialogs don't feel oversized */
+.frappe-dialog {
+	--dialog-border-radius: 12px;
 }
 </style>

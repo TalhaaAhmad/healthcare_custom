@@ -1,283 +1,236 @@
 <template>
-	<Dialog v-if="show && !minimized" v-model="show" :options="{
-		size: '6xl',
+	<Dialog v-if="show" v-model="show" :options="{
+		size: '5xl',
+		noPadding: true,
 	}" :disable-outside-click-to-close="true">
-		<template #body-title>
-			<h3 class="text-ink-gray-8">Book an Appointment</h3>
-		</template>
 		<template #body-content>
-			<div class="flex flex-col h-[65vh] border-b">
-				<div class="m-4" v-if="!success">
-					<Progress
-						size="lg"
-						:value="progressCount"
-						:intervals="true"
-						:interval-count="intervalCount"
-					/>
+			<div class="flex flex-col min-h-[75vh] max-h-[85vh] bg-white rounded-2xl overflow-hidden font-sans text-slate-600">
+				
+				<!-- Slim Utility Header -->
+				<div class="px-6 h-14 border-b border-slate-100 flex items-center justify-between shrink-0">
+					<div class="flex items-center gap-3">
+						<div class="w-1.5 h-1.5 rounded-full bg-indigo-600"></div>
+						<h3 class="text-[10px] font-bold text-slate-900 uppercase tracking-[0.2em]">
+							{{ success ? 'Confirmed' : booked ? 'Review & Pay' : 'Appointment Booking' }}
+						</h3>
+					</div>
+					<!-- Compact Step Indicator -->
+					<div v-if="!success" class="flex items-center gap-4">
+						<div class="flex gap-1">
+							<div v-for="step in intervalCount" :key="step" 
+								class="h-1 rounded-full transition-all duration-500"
+								:class="step <= currentStep ? 'w-4 bg-indigo-600' : 'w-1 bg-slate-100'"
+							></div>
+						</div>
+						<span class="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Step {{ currentStep }}/{{ intervalCount }}</span>
+					</div>
 				</div>
 
-				<div class="flex-1 overflow-y-auto px-2 py-2 animate-fade-in">
-					<!-- Department Selection -->
-					<DepartmentSelector
-						v-if="departments.length > 1 && !show_practitioners"
-						:items="paginatedDepartments"
-						:selected="selectedDepartment"
-						:page="deptPage"
-						:totalPages="totalDeptPages"
-						@update:selected="selectedDepartment = $event"
-						@update:page="deptPage = $event"
-					/>
+				<div class="flex-1 flex flex-col overflow-hidden relative">
+					
+					<!-- 1. Compact Specialty/Expert Selection -->
+					<div v-if="!show_calendar && !booked && !success" class="flex-1 overflow-y-auto px-10 py-8 animate-fade-in custom-scrollbar">
+						<div class="max-w-4xl mx-auto">
+							<div class="mb-8">
+								<h2 class="text-lg font-bold text-slate-900">{{ currentStep === 1 ? 'Select Specialty' : 'Choose Practitioner' }}</h2>
+								<p class="text-xs text-slate-400 mt-1">Please select the appropriate department or doctor to continue.</p>
+							</div>
+							
+							<DepartmentSelector v-if="currentStep === 1 && departments.length > 1"
+								:items="paginatedDepartments" :selected="selectedDepartment"
+								:page="deptPage" :totalPages="totalDeptPages"
+								@update:selected="handleDepartmentSelection" @update:page="deptPage = $event"
+							/>
 
-					<!-- Practitioner Selection -->
-					<PractitionerSelector
-						v-if="(show_practitioners || departments.length == 1) && !show_calendar && !booked"
-						:items="paginatedPractitioners"
-						:selected="selectedPractitioner"
-						:page="practitionerPage"
-						:totalPages="totalPractitionerPages"
-						@update:selected="selectedPractitioner = $event"
-						@update:page="practitionerPage = $event"
-					/>
+							<PractitionerSelector v-else
+								:items="paginatedPractitioners" :selected="selectedPractitioner"
+								:page="practitionerPage" :totalPages="totalPractitionerPages"
+								@update:page="practitionerPage = $event" @book="handlePractitionerSelection"
+							/>
+						</div>
+					</div>
 
-					<!-- Booking View -->
-					<div
-						v-if="show_calendar && !booked"
-						class="grid gap-1 animate-fade-in h-[99%] grid-cols-1 md:grid-cols-3 lg:grid-cols-3 border border-gray-200 rounded-md"
-					>
-						<div class="flex flex-col items-center justify-center h-full min-h-[350px] border-r">
-							<div class="w-28 h-28 mb-3">
-								<img
-									v-if="selectedPractitioner.image"
-									:src="selectedPractitioner.image"
-									class="w-full h-full rounded-full object-cover bg-gray-100"
-								/>
-								<div
-									v-else
-									class="w-full h-full rounded-full flex items-center justify-center text-gray-700 text-3xl font-semibold bg-gray-100"
-									>
-									{{ selectedPractitioner.practitioner_name.charAt(0).toUpperCase() }}
+					<!-- 2. Integrated "Studio" Booking View -->
+					<div v-if="show_calendar && !booked && !success" class="flex-1 flex divide-x divide-slate-100 overflow-hidden animate-fade-in">
+						
+						<!-- Slim Left Sidebar: Practitioner & Patient -->
+						<div class="w-64 bg-slate-50/50 flex flex-col p-6 shrink-0">
+							<div class="flex items-center gap-3 mb-8">
+								<img v-if="selectedPractitioner.image" :src="selectedPractitioner.image" class="w-10 h-10 rounded-lg object-cover shadow-sm" />
+								<div v-else class="w-10 h-10 rounded-lg bg-slate-900 flex items-center justify-center text-white text-xs font-bold">{{ selectedPractitioner.practitioner_name.charAt(0) }}</div>
+								<div class="min-w-0">
+									<h4 class="text-xs font-bold text-slate-900 truncate">{{ selectedPractitioner.practitioner_name }}</h4>
+									<p class="text-[9px] font-bold text-indigo-600 uppercase tracking-widest mt-0.5">{{ selectedPractitioner.department }}</p>
 								</div>
 							</div>
-							<div class="font-semibold text-lg">{{ selectedPractitioner.practitioner_name }}</div>
-							<div class="text-sm text-gray-500">{{ selectedPractitioner.department }}</div>
-							<div class="text-sm text-gray-500">{{ selectedPractitioner.designation }}</div>
 
-							<div class="flex items-center w-full py-5">
-								<div class="flex-grow border-t border-gray-200"></div>
-								<span class="mx-3 text-xs text-gray-400 uppercase tracking-wider">For Patient</span>
-								<div class="flex-grow border-t border-gray-200"></div>
-							</div>
-
-							<div class="flex flex-col items-center justify-center w-full px-4 py-4 space-y-4">
-								<FormControl
-									v-model="selectedPatient"
-									type="autocomplete"
-									:options="patientOptions"
-									:placeholder="'Choose a patient'"
-									size="lg"
-									:disabled="patientOptions.length == 1"
-								/>
-
-								<div v-if="isNewPatient" class="w-full space-y-3 animate-fade-in">
-									<FormControl
-										v-model="relativeDetails.first_name"
-										label="First Name"
-										placeholder="e.g. John"
-										size="sm"
-										required
-									/>
-									<FormControl
-										v-model="relativeDetails.last_name"
-										label="Last Name"
-										placeholder="e.g. Doe"
-										size="sm"
-									/>
+							<div class="space-y-6">
+								<div>
+									<span class="text-[9px] font-bold text-slate-400 uppercase tracking-widest block mb-2">Patient Profile</span>
+									<FormControl v-model="selectedPatient" type="autocomplete" :options="patientOptions" size="sm" class="compact-input" />
+								</div>
+								
+								<!-- Minimalist Relative Details -->
+								<div v-if="isNewPatient" class="space-y-3 pt-4 border-t border-slate-200 animate-slide-in">
 									<div class="grid grid-cols-2 gap-2">
-										<FormControl
-											v-model="relativeDetails.sex"
-											type="select"
-											label="Gender"
-											:options="['Male', 'Female', 'Other']"
-											size="sm"
-											required
-										/>
-										<FormControl
-											v-model="relativeDetails.relation"
-											type="select"
-											label="Relation"
-											:options="['Father', 'Mother', 'Spouse', 'Siblings', 'Family', 'Other']"
-											size="sm"
-										/>
+										<FormControl v-model="relativeDetails.first_name" label="First Name" size="sm" />
+										<FormControl v-model="relativeDetails.last_name" label="Last Name" size="sm" />
 									</div>
-									<FormControl
-										v-model="relativeDetails.dob"
-										type="date"
-										label="Date of Birth"
-										size="sm"
-									/>
+									<div class="grid grid-cols-2 gap-2">
+										<FormControl v-model="relativeDetails.sex" type="select" :options="['Male', 'Female', 'Other']" label="Gender" size="sm" />
+										<FormControl v-model="relativeDetails.relation" type="select" :options="['Self', 'Family', 'Other']" label="Relation" size="sm" />
+									</div>
+									<FormControl v-model="relativeDetails.mobile_number" label="Mobile" size="sm" />
 								</div>
 							</div>
 						</div>
 
-						<div class="py-2 flex items-center justify-center h-full min-h-[350px] border-r">
-							<div class="flex items-center justify-center">
-								<Calendar v-model:selectedDate="selectedDate" class="max-w-md scale-110" />
+						<!-- Center: Precise Calendar -->
+						<div class="flex-1 flex flex-col items-center justify-center p-8 bg-white overflow-y-auto custom-scrollbar">
+							<div class="w-full max-w-sm">
+								<span class="text-[9px] font-bold text-slate-300 uppercase tracking-[0.2em] block mb-8 text-center">Select Date</span>
+								<Calendar v-model:selectedDate="selectedDate" size="sm" />
 							</div>
 						</div>
 
-						<div class="flex flex-col items-center justify-center h-full min-h-[350px]">
-							<div class="flex flex-col items-center justify-center w-full max-w-md">
-								<div v-if="slots && slots.length > 0" class="flex flex-col items-center py-3 px-4">
-									<h3 class="text-md font-semibold mb-3 text-center">Available Slots</h3>
-									<div class="flex justify-center mb-2 w-full">
-										<Select
-											:options="timezones"
-											v-model="selectedTimezone"
-											class="border border-gray-300 rounded-md px-2 py-1 text-sm w-full max-w-xs"
-										/>
-									</div>
-								</div>
-
-								<div v-else class="flex items-center justify-center text-gray-500 text-sm h-24">
-									No slots available
-								</div>
-
-								<!-- Scrollable slots list -->
-								<div v-if="slots && slots.length > 0" class="overflow-y-auto max-h-80 px-4 py-2 w-full">
+						<!-- Right: Compact Slots -->
+						<div class="w-80 flex flex-col p-8 overflow-hidden bg-white">
+							<span class="text-[9px] font-bold text-slate-300 uppercase tracking-[0.2em] block mb-6">Available Time Slots</span>
+							
+							<div class="flex-1 overflow-y-auto custom-scrollbar">
+								<div v-if="slots.length" class="space-y-6">
 									<div v-for="(group, label) in groupedSlots" :key="label">
-										<div v-if="group && group.length > 0" class="mb-4">
-											<h4 class="text-sm font-medium text-gray-600 mb-2">{{ label }}</h4>
-											<div class="grid grid-cols-4 sm:grid-cols-3 md:grid-cols-4 gap-2">
-												<Button
-													v-for="slot in group"
-													:key="slot.slot"
-													size="md"
-													:label="slot.formattedTime"
-													:class="[
-														selectedSlot?.slot == slot.slot
-														? 'bg-surface-gray-5 text-white'
-														: 'bg-surface-white hover:bg-surface-gray-4 border shadow-sm',
-														'rounded-lg shadow-sm'
-													]"
-													@click="selectedSlot = slot"
-												/>
+										<div v-if="group.length">
+											<h5 class="text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-3">{{ label }}</h5>
+											<div class="grid grid-cols-2 gap-2">
+												<button v-for="slot in group" :key="slot.slot" @click="selectedSlot = slot"
+													class="py-2.5 rounded-lg text-[10px] font-bold uppercase transition-all border"
+													:class="selectedSlot?.slot === slot.slot 
+														? 'bg-slate-900 border-slate-900 text-white shadow-md' 
+														: 'bg-white border-slate-100 text-slate-400 hover:border-indigo-400 hover:text-indigo-600'"
+												>
+													{{ slot.formattedTime }}
+												</button>
 											</div>
 										</div>
 									</div>
 								</div>
+								<div v-else class="h-full flex flex-col items-center justify-center opacity-30 italic text-xs">
+									<ClockIcon class="w-6 h-6 mb-2" />
+									Select a date...
+								</div>
+							</div>
+
+							<!-- Slim Selection Footer -->
+							<div v-if="selectedSlot" class="mt-6 pt-6 border-t border-slate-50 animate-fade-up">
+								<div class="flex items-center justify-between text-xs font-bold text-slate-900">
+									<span class="text-slate-400 font-medium">Selected</span>
+									<span>{{ selectedDate }} at {{ selectedSlot.formattedTime }}</span>
+								</div>
 							</div>
 						</div>
 					</div>
-					<div v-if="(booked && !success) && !show_calendar" class="flex flex-col h-[99%] animate-fade-in items-center justify-center">
-						<Payment
-							v-model:practitioner="selectedPractitioner.practitioner_name"
-							v-model:consultationFee="consultationFee"
-							v-model:currency="currency"
-							class="w-full h-full max-w-sm" 
-							@payment_success="() => success = true"
-						/>
+
+					<!-- 3. Final Step Views -->
+					<div v-if="booked && !success" class="flex-1 flex flex-col items-center justify-center p-10 animate-fade-in">
+						<div class="w-full max-w-sm">
+							<Payment v-model:practitioner="selectedPractitioner.practitioner_name"
+								v-model:consultationFee="consultationFee" v-model:currency="currency"
+								@payment_success="() => success = true" />
+						</div>
 					</div>
-					<div v-if="success" class="flex flex-col items-center justify-center h-[99%] text-center space-y-4 animate-fade-in">
-						<FeatherIcon name="check-circle" class="text-green-500 w-20 h-20" />
-						<h2 class="text-xl font-semibold text-gray-800">Payment Successful</h2>
-						<p class="text-gray-600">Your appointment with {{ selectedPractitioner.practitioner_name }} has been confirmed.</p>
+
+					<div v-if="success" class="flex-1 flex flex-col items-center justify-center p-10 text-center animate-fade-in">
+						<div class="w-16 h-16 rounded-2xl bg-green-50 flex items-center justify-center text-green-500 mb-6 border border-green-100 shadow-sm">
+							<CheckCircleIcon class="w-8 h-8" />
+						</div>
+						<h2 class="text-lg font-bold text-slate-900">Session Confirmed</h2>
+						<p class="text-xs text-slate-400 mt-2 max-w-[240px]">Appointment with {{ selectedPractitioner.practitioner_name }} is secured.</p>
+						<button @click="reload_appointments" class="mt-8 px-8 py-3 bg-slate-900 rounded-xl text-white text-[10px] font-bold uppercase tracking-widest shadow-lg hover:bg-slate-800 transition-all">
+							Finish
+						</button>
 					</div>
 				</div>
-				<div class="min-h-[10px]">
-					<ErrorMessage v-if="error" :message="error" />
+
+				<!-- Floating Action Footer -->
+				<div v-if="!success" class="px-6 h-16 border-t border-slate-50 flex justify-between items-center bg-white shrink-0">
+					<Button v-if="currentStep > 1" variant="subtle" size="sm" class="!px-6 !text-[10px] font-bold uppercase" @click="goToPrevious()">
+						Back
+					</Button>
+					<div class="flex-1"></div>
+					<Button v-if="!show_calendar && !booked" :disabled="!((selectedDepartment && currentStep===1) || (selectedPractitioner && currentStep===2))"
+						variant="solid" size="sm" class="!px-8 !bg-slate-900 !text-[10px] font-bold uppercase tracking-widest" @click="goToNext()">
+						Continue
+					</Button>
+					<Button v-else-if="show_calendar && !booked" :disabled="!selectedSlot"
+						variant="solid" size="sm" class="!px-8 !bg-indigo-600 !text-[10px] font-bold uppercase tracking-widest shadow-md shadow-indigo-100"
+						:loading="bookingLoading" @click="bookSlot()">
+						Book Slot
+					</Button>
+					<Button v-else-if="booked" variant="solid" size="sm" class="!px-8 !bg-indigo-600 !text-[10px] font-bold uppercase tracking-widest" @click="generatePaymentLink()">
+						Pay Now
+					</Button>
 				</div>
 			</div>
-		</template>
-		<template #actions>
-			<div class="flex justify-center gap-2 ">
-				<Button
-					v-if="!success"
-					:disabled="!(show_practitioners || show_calendar || booked)"
-					size="md"
-					variant="subtle"
-					@click="goToPrevious()"
-				>
-					Previous
-				</Button>
-				<Button
-					v-if="!show_calendar && !booked && !success"
-					:disabled="!((selectedDepartment && !show_practitioners) || (selectedPractitioner && show_practitioners && !show_calendar && !booked))"
-					size="md"
-					variant="solid"
-					@click="goToNext()"
-				>
-					Next
-				</Button>
-				<Button
-					v-if="show_calendar && !booked && !success"
-					:disabled="!(show_calendar && selectedSlot)"
-					size="md"
-					variant="solid"
-					:loading="bookingLoading"
-					@click="bookSlot()"
-				>
-					Book
-				</Button>
-				<Button
-					v-if="booked && !success"
-					size="md"
-					variant="solid"
-					@click="generatePaymentLink()"
-				>
-					Pay
-				</Button>
-				<Button
-					v-if="success"
-					size="md"
-					variant="solid"
-					@click="reload_appointments"
-				>
-					Close
-				</Button>
-			</div>
+			<ErrorMessage v-if="error" class="p-4 mx-6 mb-6" :message="error" />
 		</template>
 	</Dialog>
-
-	<Dialog 
-		:options="{
-			title: dialog_title,
-			message: dialog_message,
-			size: 'xl',
-			icon: {
-				name: 'alert-triangle',
-				appearance: 'warning',
-			},
-			actions: [
-				{
-					label: 'OK',
-					variant: 'solid',
-				},
-			],
-		}"
-		v-model="alert_dialog"
-		@click="alert_dialog = false"
-	/>
 </template>
+
+<style scoped>
+.compact-input :deep(input) {
+	@apply text-xs h-9 bg-slate-50 border-none rounded-lg transition-all;
+}
+.compact-input :deep(input):focus {
+	box-shadow: 0 0 0 2px #e0e7ff; /* indigo-100 ring approximation */
+	outline: none;
+}
+
+.custom-scrollbar::-webkit-scrollbar {
+	width: 4px;
+}
+.custom-scrollbar::-webkit-scrollbar-track {
+	background: transparent;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb {
+	background: #f1f5f9;
+	border-radius: 4px;
+}
+</style>
 
 <script setup>
 import {
 	createResource,
 	Button,
 	Dialog,
-	Progress,
-	Select,
 	FormControl,
 	ErrorMessage,
 	toast,
 } from 'frappe-ui'
-import { computed, ref, watch, onMounted, onBeforeUnmount } from 'vue'
+import { computed, ref, watch, onMounted } from 'vue'
 import DepartmentSelector from '@/components/DepartmentSelector.vue'
 import PractitionerSelector from '@/components/PractitionerSelector.vue'
 import Calendar from '@/components/Calendar.vue'
 import Payment from '@/components/Payment.vue'
+import { 
+	ClockIcon, 
+	CheckIcon, 
+	CheckCircleIcon,
+	CalendarIcon
+} from 'lucide-vue-next'
+
+const props = defineProps({
+	practitioner: {
+		type: Object,
+		default: null
+	},
+	reschedule_appointment: {
+		type: Object,
+		default: null
+	}
+})
 
 const show = defineModel();
-const selectedTimezone = ref(Intl.DateTimeFormat().resolvedOptions().timeZone)
 
 let departments = ref([]);
 let practitioners = ref([]);
@@ -294,7 +247,6 @@ const isNewPatient = computed(() => {
 	return val === 'new';
 })
 
-let practitioner = ref(null);
 let appointment = ref(null);
 
 const relativeDetails = ref({
@@ -302,15 +254,14 @@ const relativeDetails = ref({
 	last_name: '',
 	sex: '',
 	dob: '',
-	relation: ''
+	relation: '',
+	mobile_number: ''
 })
 
 let alert_dialog = ref(false);
 let show_calendar = ref(false);
-let show_practitioners = ref(false);
 let booked = ref(false);
 let success = ref(false);
-const minimized = ref(false);
 let bookingLoading = ref(false);
 
 let dialog_title = ref("");
@@ -321,24 +272,77 @@ let currentStep = ref(1)
 let intervalCount = ref(2);
 const currency = ref("")
 
+const fetchPatients = createResource({
+	url: "/api/method/healthcare.healthcare.api.patient_portal.get_patients",
+	method: "GET",
+	onSuccess(response) {
+		if (response && response.length > 0) {
+			patientOptions.value = response;
+			const storedPatient = JSON.parse(localStorage.getItem("patient"));
+			if (storedPatient) {
+				const match = response.find(p => p.value === storedPatient.value);
+				if (match) selectedPatient.value = match;
+			} else if (response.length === 1) {
+				selectedPatient.value = response[0];
+			}
+		}
+	},
+});
+
 onMounted(() => {
 	error.value = null;
 	fetchDepartments.fetch();
-	let get_patients = createResource({
-		url: "/api/method/healthcare.healthcare.api.patient_portal.get_patients",
-		method: "GET",
-		onSuccess(response) {
-			if (response && response.length > 0) {
-				patientOptions.value = response;
-				if (response.length == 1) {
-					selectedPatient.value = response[0];
-				}
-			}
-		},
-	});
-
-	get_patients.fetch();
+	fetchPatients.fetch();
+	
+	// Handle reschedule - skip to calendar directly
+	if (props.reschedule_appointment) {
+		initializeReschedule(props.reschedule_appointment);
+	} else if (props.practitioner) {
+		initializeDirectBooking(props.practitioner);
+	}
 });
+
+watch(() => props.practitioner, (newPractitioner) => {
+	if (newPractitioner) {
+		initializeDirectBooking(newPractitioner);
+	}
+});
+
+function initializeDirectBooking(practitioner) {
+	selectedPractitioner.value = practitioner;
+	selectedDepartment.value = practitioner.department;
+	show_calendar.value = true;
+	
+	// Calculate current step based on entry point
+	let steps = 2; // Practitioner -> Slot
+	if (departments.value.length > 1) steps++; // Dept -> Practitioner -> Slot
+	
+	// If direct, we are at the "Calendar/Slots" step
+	currentStep.value = steps;
+}
+
+// Initialize reschedule mode - skip directly to calendar/slot selection
+function initializeReschedule(appointment) {
+	// Create a practitioner-like object from the appointment data
+	selectedPractitioner.value = {
+		name: appointment.practitioner,
+		practitioner_name: appointment.practitioner_name || appointment.title?.split(' with ')[1] || appointment.practitioner,
+		department: appointment.department,
+		designation: appointment.designation || 'Practitioner',
+		image: appointment.practitioner_image || null
+	};
+	selectedDepartment.value = appointment.department;
+	show_calendar.value = true;
+	
+	// For reschedule, we go directly to calendar step
+	// Calculate step number (it should be the calendar step)
+	let steps = 2;
+	if (departments.value.length > 1) steps++;
+	if (healthcareSettings.value.collect_payment) steps++;
+	
+	// Set to the calendar step (which is steps - 1 if payment exists, or just the last step before payment)
+	currentStep.value = healthcareSettings.value.collect_payment ? steps - 1 : steps;
+}
 
 const deptPage = ref(1);
 const practitionerPage = ref(1);
@@ -357,10 +361,6 @@ let getHealthcareSettings = createResource({
 	},
 });
 getHealthcareSettings.fetch();
-
-let totalFee = computed(() => consultationFee.value + (registrationFee.value > 0 ? registrationFee.value : 0))
-
-const razorpayCheckoutJS = ref(null);
 
 const totalDeptPages = computed(() => Math.ceil(departments.value.length / itemsPerPage));
 const totalPractitionerPages = computed(() => Math.ceil(practitioners.value.length / itemsPerPage));
@@ -381,253 +381,184 @@ let fetchDepartments = createResource({
 	onSuccess(response) {
 		if (response) {
 			departments.value = response;
-			if (response.length == 1) {
+			if (response.length === 1 && !selectedDepartment.value) {
 				selectedDepartment.value = response[0].department
 				fetchPractitioners(selectedDepartment.value);
-				show_practitioners.value = true;
 			}
 		}
 	},
-	onError(e) {
-		error.value = e.messages?.[0] || e;
-	}
 });
 
 watch([() => departments.value.length, () => healthcareSettings.value.collect_payment], ([deptLength, collectPayment]) => {
-	if (deptLength > 1 && collectPayment) {
-		intervalCount.value = 4
-	} else if (deptLength > 1 && !collectPayment) {
-		intervalCount.value = 3
-	} else if (deptLength === 1 && collectPayment) {
-		intervalCount.value = 3
-	} else {
-		intervalCount.value = 2
-	}
+	let steps = 2; // Practitioner -> Slot
+	if (deptLength > 1) steps++; // Dept -> Practitioner -> Slot
+	if (collectPayment) steps++; // ... -> Payment
+	intervalCount.value = steps;
 })
 
 const progressCount = computed(() => (currentStep.value / intervalCount.value) * 100)
 
+const handleDepartmentSelection = (dept) => {
+	selectedDepartment.value = dept;
+	fetchPractitioners(dept);
+	goToNext();
+}
+
+const handlePractitionerSelection = (pract) => {
+	selectedPractitioner.value = pract;
+	show_calendar.value = true;
+	goToNext();
+}
+
 function fetchPractitioners(deptName) {
-	error.value = null;
-	let get_practitioners = createResource({
+	createResource({
 		url: "/api/method/healthcare.healthcare.api.patient_portal.get_practitioners",
 		method: "GET",
 		makeParams() {
-			return {
-				department: deptName,
-			};
+			return { department: deptName };
 		},
 		onSuccess(response) {
-			if (response) {
-				practitioners.value = response;
-			}
+			if (response) practitioners.value = response;
 		},
-		onError(e) {
-			error.value = e.messages?.[0] || e;
-		}
-	});
-
-	get_practitioners.fetch();
+	}).fetch();
 }
 
 async function fetchSlots(date) {
-	error.value = null;
-	let slotResource = createResource({
+	if (!selectedPractitioner.value) return;
+	const slotResource = createResource({
 		url: "/api/method/healthcare.healthcare.api.patient_portal.get_slots",
 		method: "GET",
 		makeParams() {
 			return {
-				practitioner: selectedPractitioner.value?.name || null,
+				practitioner: selectedPractitioner.value.name,
 				date: date
 			};
 		},
 		onSuccess(response) {
-			if (date === selectedDate.value) {
-				slots.value = response || [];
-			}
+			if (date === selectedDate.value) slots.value = response || [];
 		},
-		onError(e) {
-			error.value = e.messages?.[0] || e;
-		}
 	});
 	await slotResource.fetch();
 }
 
-function get_fees(pract, date) {
-	error.value = null;
-	let get_fee_for_pract = createResource({
+function fetchFees(pract, date) {
+	createResource({
 		url: "/api/method/healthcare.healthcare.api.patient_portal.get_fees",
 		method: "GET",
 		makeParams() {
-			return {
-				practitioner: pract || null,
-				date: date
-			};
+			return { practitioner: pract, date: date };
 		},
 		onSuccess(response) {
 			if (response) {
 				currency.value = response.default_currency;
 				consultationFee.value = response?.details?.practitioner_charge || 0;
-				totalFee.value = consultationFee.value + (registrationFee.value > 0 ? registrationFee.value : 0);
+			}
+		},
+	}).fetch();
+}
+
+async function bookSlot() {
+	error.value = null;
+	if (isNewPatient.value) {
+		const rd = relativeDetails.value;
+		if (!rd.first_name || !rd.last_name || !rd.sex || !rd.relation || !rd.mobile_number) {
+			error.value = "Please fill in all required patient details (First Name, Last Name, Gender, Relationship, and Mobile Number).";
+			return;
+		}
+	}
+	if (!selectedDate.value || !selectedSlot.value) {
+		error.value = "Please select a date and time slot.";
+		return;
+	}
+
+	const bookAppointment = createResource({
+		url: "/api/method/healthcare.healthcare.api.patient_portal.make_appointment",
+		method: "POST",
+		makeParams() {
+			const patientValue = selectedPatient.value?.value || selectedPatient.value;
+			return {
+				practitioner: selectedPractitioner.value.name,
+				patient: patientValue,
+				date: selectedDate.value,
+				slot: selectedSlot.value.slot,
+				appointment_id: props.reschedule_appointment ? props.reschedule_appointment.name : null,
+				relative_details: patientValue === 'new' ? relativeDetails.value : null
+			};
+		},
+		onSuccess(response) {
+			if (response) {
+				appointment.value = response;
+				show_calendar.value = false;
+				booked.value = true;
+				currentStep.value = intervalCount.value;
+				if (!healthcareSettings.value.collect_payment) success.value = true;
 			}
 		},
 		onError(e) {
 			error.value = e.messages?.[0] || e;
 		}
 	});
-	get_fee_for_pract.fetch();
-}
 
-async function bookSlot() {
-	error.value = null;
-	if (isNewPatient.value) {
-		if (!relativeDetails.value.first_name || !relativeDetails.value.sex) {
-			error.value = "Please fill in the relative's first name and gender.";
-			return;
-		}
-	}
-	if (selectedSlot.value.slot) {
-		const bookAppointment = createResource({
-			url: "/api/method/healthcare.healthcare.api.patient_portal.make_appointment",
-			method: "POST",
-			makeParams() {
-				const patientValue = selectedPatient.value?.value || selectedPatient.value;
-				return {
-					practitioner: selectedPractitioner.value?.name,
-					patient: patientValue,
-					date: selectedDate.value,
-					slot: selectedSlot.value.slot,
-					relative_details: patientValue === 'new' ? relativeDetails.value : null
-				};
-			},
-			onSuccess(response) {
-				if (response){
-					appointment.value = response;
-					if (show_calendar.value && !booked.value) {
-						show_calendar.value = false
-						booked.value = true
-						currentStep.value = intervalCount.value
-						if (!healthcareSettings.value.collect_payment) {
-							success.value = true
-						}
-					}
-				}
-			},
-			onError(e) {
-				error.value = e.messages?.[0] || e;
-			}
-		});
-
-		try {
-			bookingLoading.value = true;
-			await bookAppointment.submit();
-		} finally {
-			bookingLoading.value = false;
-		}
+	try {
+		bookingLoading.value = true;
+		await bookAppointment.submit();
+	} finally {
+		bookingLoading.value = false;
 	}
 }
 
 function goToNext() {
 	error.value = null;
-	if (selectedDepartment.value && !selectedPractitioner.value) {
-		show_practitioners.value = true
-		fetchPractitioners(selectedDepartment.value)
-		currentStep.value = 2
-	} else if (selectedPractitioner.value) {
-		show_calendar.value = true
-		currentStep.value = departments.value.length > 1 ? 3 : 2
+	if (currentStep.value < intervalCount.value) {
+		currentStep.value++;
 	}
 }
 
 function goToPrevious() {
 	error.value = null;
-	if (show_practitioners.value && !show_calendar.value && !booked.value) {
-		selectedDepartment.value = null
-		selectedPractitioner.value = null
-		show_practitioners.value = false
-		currentStep.value = 1
-		fetchDepartments.fetch()
-	} else if (show_calendar.value && !booked.value) {
-		show_calendar.value = false
-		show_practitioners.value = true
-		selectedDate.value = null
-		slots.value = []
-		currentStep.value = departments.value.length > 1 ? 2 : 1
-	} else if (booked.value) {
-		show_calendar.value = true
-		booked.value = false
-		currentStep.value = intervalCount.value - 1
+	if (booked.value) {
+		booked.value = false;
+		show_calendar.value = true;
+		currentStep.value--;
+	} else if (show_calendar.value) {
+		// If direct booking, close dialog on back from calendar
+		if (props.practitioner) {
+			show.value = false;
+		} else {
+			show_calendar.value = false;
+			currentStep.value--;
+			selectedDate.value = null;
+			selectedSlot.value = null;
+		}
+	} else {
+		currentStep.value--;
 	}
-};
+}
 
 watch(selectedDate, async (date) => {
 	selectedSlot.value = null;
 	slots.value = [];
-	if (date) {
+	if (date && selectedPractitioner.value) {
 		await fetchSlots(date);
-	} else {
-		slots.value = [];
-	}
-	get_fees(selectedPractitioner.value?.name, date)
-});
-
-watch(selectedTimezone, async (timezone) => {
-	selectedSlot.value = null;
-	slots.value = [];
-	if (timezone && selectedDate.value) {
-		await fetchSlots(selectedDate.value);
-	} else {
-		slots.value = [];
+		fetchFees(selectedPractitioner.value?.name, date);
 	}
 });
 
-// Group slots by time of day
 const groupedSlots = computed(() => {
 	const groups = { "Morning": [], "Afternoon": [], "Evening": [] }
-
-	if (!slots.value.length || !selectedTimezone.value || !selectedDate.value) {
-		return groups;
-	}
-
-	const selected = new Date(selectedDate.value)
+	if (!slots.value.length) return groups;
 
 	slots.value.forEach(slot => {
-		const [hour, minute] = slot.split(':').map(Number);
+		const hour = parseInt(slot.split(':')[0]);
+		const formattedTime = new Date(`2000-01-01T${slot}:00`).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+		const slotObj = { formattedTime, slot };
 		
-		const serverTime = new Date(
-			selected.getFullYear(),
-			selected.getMonth(),
-			selected.getDate(),
-			hour,
-			minute
-		);
-
-		// Convert the server time to the user's selected timezone
-		const userTime = new Date(serverTime.toLocaleString('en-US', { timeZone: selectedTimezone.value }));
-		const userHour = userTime.getHours();
-		const userminute = String(userTime.getMinutes()).padStart(2, '0');
-
-		const formattedTime = `${userHour}:${userminute}`;
-		const slotes_with_formatted = {"formattedTime": formattedTime, "slot": slot}
-		
-		if (userHour < 12) groups.Morning.push(slotes_with_formatted);
-		else if (userHour < 17) groups.Afternoon.push(slotes_with_formatted);
-		else groups.Evening.push(slotes_with_formatted);
+		if (hour < 12) groups.Morning.push(slotObj);
+		else if (hour < 17) groups.Afternoon.push(slotObj);
+		else groups.Evening.push(slotObj);
 	});
-
 	return groups;
 });
-
-const timezones = Intl.supportedValuesOf("timeZone")
-
-const days = computed(() => {
-	const startOfMonth = new Date(currentYear.value, currentMonth.value, 1)
-	const endOfMonth = new Date(currentYear.value, currentMonth.value + 1, 0)
-	const startDay = startOfMonth.getDay()
-	const totalDays = endOfMonth.getDate()
-
-	return [...Array(startDay).fill(''), ...Array.from({length: totalDays}, (_,i)=>i+1)]
-})
 
 const emit = defineEmits(['appointment_booked'])
 
@@ -636,45 +567,38 @@ function reload_appointments() {
 	emit('appointment_booked')
 }
 
-const paymentLink = createResource({
-	url: 'healthcare.healthcare.api.patient_portal.get_payment_link',
-	makeParams(values) {
-		return {
-			doctype: 'Patient Appointment',
-			docname: appointment.value?.name,
-			title: appointment.value?.title,
-			amount: totalFee.value,
-			total_amount: totalFee.value,
-			currency: currency.value,
-			patient: appointment.value?.patient,
-			redirect_to: '/patient-portal',
-		}
-	},
-})
-
 const generatePaymentLink = () => {
-	paymentLink.submit(
-		{},
-		{
-			onSuccess(data) {
-				if (data && data.includes('<form')) {
-					// Handle HTML form injection for gateways like GoPayFast
-					const div = document.createElement('div')
-					div.style.display = 'none'
-					div.innerHTML = data
-					document.body.appendChild(div)
-					const form = div.querySelector('form')
-					if (form) {
-						form.submit()
-					}
-				} else if (data) {
-					window.location.href = data
-				}
-			},
-			onError(err) {
-				toast.error(err.messages?.[0] || err)
-			},
-		}
-	)
+	createResource({
+		url: 'healthcare.healthcare.api.patient_portal.get_payment_link',
+		makeParams() {
+			return {
+				doctype: 'Patient Appointment',
+				docname: appointment.value?.name,
+				title: appointment.value?.title,
+				amount: consultationFee.value + registrationFee.value,
+				total_amount: consultationFee.value + registrationFee.value,
+				currency: currency.value,
+				patient: appointment.value?.patient,
+				redirect_to: '/patient_portal',
+			}
+		},
+		onSuccess(data) {
+			if (data && data.includes('<form')) {
+				const div = document.createElement('div')
+				div.style.display = 'none'
+				div.innerHTML = data
+				document.body.appendChild(div)
+				const form = div.querySelector('form')
+				if (form) form.submit()
+			} else if (data) {
+				window.location.href = data
+			}
+		},
+		onError(err) {
+			toast.error(err.messages?.[0] || err)
+		},
+	}).submit();
 }
 </script>
+
+

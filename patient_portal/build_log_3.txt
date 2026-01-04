@@ -1,0 +1,22 @@
+yarn run v1.22.22
+$ vite build --base=/assets/healthcare/patient_portal/
+vite v4.4.9 building for production...
+transforming...
+✓ 18 modules transformed.
+✓ built in 2.04s
+[vite:vue] Invalid end tag.
+file: /home/frappe-user/frappe-bench/apps/healthcare/patient_portal/src/components/AppointmentModel.vue:12:5
+error during build:
+SyntaxError: Invalid end tag.
+    at createCompilerError (/home/frappe-user/frappe-bench/apps/healthcare/patient_portal/node_modules/@vue/compiler-core/dist/compiler-core.cjs.prod.js:1374:17)
+    at emitError (/home/frappe-user/frappe-bench/apps/healthcare/patient_portal/node_modules/@vue/compiler-core/dist/compiler-core.cjs.prod.js:2980:5)
+    at Object.onclosetag (/home/frappe-user/frappe-bench/apps/healthcare/patient_portal/node_modules/@vue/compiler-core/dist/compiler-core.cjs.prod.js:2387:9)
+    at Tokenizer.stateInClosingTagName (/home/frappe-user/frappe-bench/apps/healthcare/patient_portal/node_modules/@vue/compiler-core/dist/compiler-core.cjs.prod.js:799:16)
+    at Tokenizer.parse (/home/frappe-user/frappe-bench/apps/healthcare/patient_portal/node_modules/@vue/compiler-core/dist/compiler-core.cjs.prod.js:1157:16)
+    at Object.baseParse (/home/frappe-user/frappe-bench/apps/healthcare/patient_portal/node_modules/@vue/compiler-core/dist/compiler-core.cjs.prod.js:3012:13)
+    at Object.parse (/home/frappe-user/frappe-bench/apps/healthcare/patient_portal/node_modules/@vue/compiler-dom/dist/compiler-dom.cjs.prod.js:665:23)
+    at Object.parse$1 [as parse] (/home/frappe-user/frappe-bench/apps/healthcare/patient_portal/node_modules/@vue/compiler-sfc/dist/compiler-sfc.cjs.js:1824:24)
+    at createDescriptor (file:///home/frappe-user/frappe-bench/apps/healthcare/patient_portal/node_modules/@vitejs/plugin-vue/dist/index.mjs:70:43)
+    at transformMain (file:///home/frappe-user/frappe-bench/apps/healthcare/patient_portal/node_modules/@vitejs/plugin-vue/dist/index.mjs:2273:34)
+error Command failed with exit code 1.
+info Visit https://yarnpkg.com/en/docs/cli/run for documentation about this command.

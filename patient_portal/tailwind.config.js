@@ -12,11 +12,13 @@ export default {
   theme: {
     extend: {
       colors: {
+        'brand-orange': '#F07167',
         lightBlue: colors.sky,
         warmGray: colors.stone,
         trueGray: colors.neutral,
         coolGray: colors.gray,
         blueGray: colors.slate,
+        slate: colors.slate,
       },
     },
   },

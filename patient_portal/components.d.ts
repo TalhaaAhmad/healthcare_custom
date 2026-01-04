@@ -10,12 +10,17 @@ declare module 'vue' {
   export interface GlobalComponents {
     AppointmentModel: typeof import('./src/components/AppointmentModel.vue')['default']
     BookAppointmentModel: typeof import('./src/components/BookAppointmentModel.vue')['default']
+    BookTherapyPlanModel: typeof import('./src/components/BookTherapyPlanModel.vue')['default']
+    BookTherapySessionModel: typeof import('./src/components/BookTherapySessionModel.vue')['default']
     Calendar: typeof import('./src/components/Calendar.vue')['default']
     DepartmentSelector: typeof import('./src/components/DepartmentSelector.vue')['default']
     DiagnosticModel: typeof import('./src/components/DiagnosticModel.vue')['default']
+    Layout: typeof import('./src/components/Layout.vue')['default']
     Payment: typeof import('./src/components/Payment.vue')['default']
     PractitionerSelector: typeof import('./src/components/PractitionerSelector.vue')['default']
     RouterLink: typeof import('vue-router')['RouterLink']
     RouterView: typeof import('vue-router')['RouterView']
+    ServiceGrid: typeof import('./src/components/ServiceGrid.vue')['default']
+    TherapyModel: typeof import('./src/components/TherapyModel.vue')['default']
   }
 }

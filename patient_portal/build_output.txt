@@ -1,0 +1,17 @@
+yarn run v1.22.22
+$ vite build --base=/assets/healthcare/patient_portal/
+vite v4.4.9 building for production...
+transforming...
+✓ 3910 modules transformed.
+rendering chunks...
+[frappeui-build-config-plugin] Successfully copied index.html to dummy.html
+computing gzip size...
+../healthcare/public/frontend/manifest.json                         0.33 kB │ gzip:   0.15 kB
+../healthcare/public/frontend/assets/patient_portal-9092ecb5.css  128.37 kB │ gzip:  20.93 kB
+../healthcare/public/frontend/assets/patient_portal-14d19b2e.js   720.54 kB │ gzip: 215.05 kB │ map: 3,131.55 kB
+
+(!) Some chunks are larger than 500 kBs after minification. Consider:
+- Using dynamic import() to code-split the application
+- Use build.rollupOptions.output.manualChunks to improve chunking: https://rollupjs.org/configuration-options/#output-manualchunks
+- Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
+✓ built in 19.92s

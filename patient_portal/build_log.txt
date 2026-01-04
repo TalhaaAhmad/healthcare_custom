@@ -1,0 +1,18 @@
+yarn run v1.22.22
+$ vite build --base=/assets/healthcare/patient_portal/
+failed to load config from /home/frappe-user/frappe-bench/apps/healthcare/patient_portal/vite.config.js
+error during build:
+file:///home/frappe-user/frappe-bench/apps/healthcare/patient_portal/node_modules/@iconify/utils/lib/loader/warn.js:1
+import { styleText } from "node:util";
+         ^^^^^^^^^
+SyntaxError: The requested module 'node:util' does not provide an export named 'styleText'
+    at ModuleJob._instantiate (node:internal/modules/esm/module_job:123:21)
+    at async ModuleJob.run (node:internal/modules/esm/module_job:191:5)
+    at async ModuleLoader.import (node:internal/modules/esm/loader:337:24)
+    at async loadConfigFromBundledFile (file:///home/frappe-user/frappe-bench/apps/healthcare/patient_portal/node_modules/vite/dist/node/chunks/dep-df561101.js:66235:21)
+    at async loadConfigFromFile (file:///home/frappe-user/frappe-bench/apps/healthcare/patient_portal/node_modules/vite/dist/node/chunks/dep-df561101.js:66086:28)
+    at async resolveConfig (file:///home/frappe-user/frappe-bench/apps/healthcare/patient_portal/node_modules/vite/dist/node/chunks/dep-df561101.js:65682:28)
+    at async build (file:///home/frappe-user/frappe-bench/apps/healthcare/patient_portal/node_modules/vite/dist/node/chunks/dep-df561101.js:47852:20)
+    at async CAC.<anonymous> (file:///home/frappe-user/frappe-bench/apps/healthcare/patient_portal/node_modules/vite/dist/node/cli.js:822:9)
+error Command failed with exit code 1.
+info Visit https://yarnpkg.com/en/docs/cli/run for documentation about this command.

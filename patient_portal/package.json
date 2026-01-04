@@ -4,8 +4,11 @@
   "main": "patient_portal.js",
   "license": "MIT",
   "dependencies": {
+    "date-fns": "^4.1.0",
     "feather-icons": "^4.28.0",
     "frappe-ui": "^0.1.176",
+    "lucide": "^0.562.0",
+    "lucide-vue-next": "^0.562.0",
     "vue": "^3.2.25",
     "vue-router": "^4.0.12"
   },

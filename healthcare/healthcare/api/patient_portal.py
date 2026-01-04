@@ -71,10 +71,14 @@ def get_departments():
 
 
 @frappe.whitelist()
-def get_practitioners(department):
+def get_practitioners(department=None):
+	filters = {}
+	if department:
+		filters["department"] = department
+
 	return frappe.db.get_all(
 		"Healthcare Practitioner",
-		filters={"department": department},
+		filters=filters,
 		fields=["name", "practitioner_name", "designation", "department", "image"],
 	)
 
@@ -144,7 +148,7 @@ def get_slots(practitioner, date):
 	return full_slots if len(full_slots) > 0 else None
 
 @frappe.whitelist(methods=["POST"])
-def make_appointment(practitioner, patient, date, slot, relative_details=None):
+def make_appointment(practitioner, patient, date, slot, relative_details=None, appointment_id=None):
 	if patient == "new":
 		if not relative_details:
 			frappe.throw(_("Relative details are required when booking for someone else."))
@@ -166,6 +170,7 @@ def make_appointment(practitioner, patient, date, slot, relative_details=None):
 		new_patient.last_name = relative_details.get("last_name")
 		new_patient.sex = relative_details.get("sex")
 		new_patient.dob = relative_details.get("dob")
+		new_patient.mobile = relative_details.get("mobile_number")
 		new_patient.customer = customer
 		new_patient.status = "Active"
 		new_patient.insert(ignore_permissions=True)
@@ -179,7 +184,15 @@ def make_appointment(practitioner, patient, date, slot, relative_details=None):
 
 		patient = new_patient.name
 
-	doc = frappe.new_doc("Patient Appointment")
+	if appointment_id:
+		# Update existing appointment (Reschedule)
+		doc = frappe.get_doc("Patient Appointment", appointment_id)
+		# Verify ownership/permissions if needed, though get_doc handles basic perm checks
+		if doc.status not in ["Open", "Scheduled", "Confirmed"]:
+			frappe.throw(_("Cannot reschedule an appointment that is not Open, Scheduled or Confirmed"))
+	else:
+		# Create new appointment
+		doc = frappe.new_doc("Patient Appointment")
 	
 	# Get first available appointment type (v15 compatible)
 	appointment_type = frappe.db.get_value("Appointment Type", {}, "name")
@@ -236,7 +249,7 @@ def make_appointment(practitioner, patient, date, slot, relative_details=None):
 	except Exception:
 		pass  # Billing fields are optional
 	
-	doc.insert(ignore_permissions=True)
+	doc.save(ignore_permissions=True)
 	return doc
 
 
@@ -804,3 +817,102 @@ def update_payment_record(doctype, docname):
 			},
 		)
 		payment_doc.save(ignore_permissions=True)
+
+
+@frappe.whitelist()
+def get_therapy_plan_templates():
+	return frappe.db.get_all(
+		"Therapy Plan Template", 
+		fields=["name", "plan_name", "total_sessions"],
+		order_by="plan_name asc"
+	)
+
+
+@frappe.whitelist()
+def get_therapy_plan_frequencies():
+	return frappe.db.get_all(
+		"Therapy Plan Frequency",
+		fields=["name", "frequency_name", "duration_in_days", "sessions_per_duration"],
+		order_by="name asc"
+	)
+
+
+@frappe.whitelist(methods=["POST"])
+def create_therapy_plan(template, patient, sessions=None, relative_details=None, frequency=None):
+	if relative_details:
+		if isinstance(relative_details, str):
+			relative_details = json.loads(relative_details)
+		
+		# Create new patient for relative
+		try:
+			new_patient = frappe.new_doc("Patient")
+			new_patient.first_name = relative_details.get("first_name")
+			new_patient.last_name = relative_details.get("last_name")
+			new_patient.sex = relative_details.get("gender")
+			new_patient.mobile = relative_details.get("mobile")
+			new_patient.email = relative_details.get("email")
+			new_patient.dob = relative_details.get("dob")
+			new_patient.flags.ignore_mandatory = True 
+			new_patient.insert(ignore_permissions=True)
+			
+			# Add to current user's patient relations
+			user_patient_name = frappe.db.get_value("Patient", {"user_id": frappe.session.user}, "name")
+			if user_patient_name:
+				user_patient = frappe.get_doc("Patient", user_patient_name)
+				user_patient.append("patient_relation", {
+					"patient": new_patient.name,
+					"relation": "Other"
+				})
+				user_patient.save(ignore_permissions=True)
+			
+			patient = new_patient.name
+		except Exception as e:
+			frappe.log_error(f"Failed to create relative patient: {str(e)}")
+			frappe.throw(_("Could not create patient profile for relative."))
+
+	plan = frappe.new_doc("Therapy Plan")
+	plan.patient = patient
+	plan.therapy_plan_template = template
+	plan.start_date = getdate()
+	
+	if frequency:
+		plan.frequency = frequency
+
+	plan.company = frappe.db.get_single_value("Healthcare Settings", "default_company") or frappe.defaults.get_user_default("Company")
+	plan.status = "Not Started"
+	plan.insert(ignore_permissions=True)
+
+	if sessions:
+		if isinstance(sessions, str):
+			sessions = json.loads(sessions)
+			
+		for session_data in sessions:
+			create_session(plan, session_data)
+
+	return plan.name
+
+
+def create_session(plan, data):
+	session = frappe.new_doc("Therapy Session")
+	session.therapy_plan = plan.name
+	session.patient = plan.patient
+	session.therapy_type = data.get("therapy_type")
+	session.practitioner = data.get("practitioner")
+	session.start_date = data.get("start_date")
+	session.start_time = data.get("start_time")
+	session.description = f"Session for {plan.name}"
+	session.insert(ignore_permissions=True)
+
+
+@frappe.whitelist(methods=["POST"])
+def cancel_appointment(appointment_id):
+	appointment = frappe.get_doc("Patient Appointment", appointment_id)
+	if appointment.patient != frappe.db.get_value("Patient", {"user_id": frappe.session.user}, "name"):
+		frappe.throw(_("Not authorized to cancel this appointment"))
+	
+	if appointment.status == "Cancelled":
+		frappe.throw(_("Appointment is already cancelled"))
+
+	appointment.status = "Cancelled"
+	appointment.save(ignore_permissions=True)
+	return True
