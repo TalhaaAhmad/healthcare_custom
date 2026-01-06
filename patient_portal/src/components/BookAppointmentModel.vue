@@ -2,6 +2,7 @@
 	<Dialog v-if="show" v-model="show" :options="{
 		size: '5xl',
 		noPadding: true,
+		title: 'Book Appointment',
 	}" :disable-outside-click-to-close="true">
 		<template #body-content>
 			<div class="flex flex-col min-h-[75vh] max-h-[85vh] bg-white rounded-2xl overflow-hidden font-sans text-slate-600">

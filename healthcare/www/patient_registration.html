@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <link rel="icon" href="/favicon.png" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Patient Registration</title>
+    <meta name="description" content="Register as a patient to access the healthcare portal" />
+    <link rel="stylesheet" href="/assets/healthcare/frontend/assets/patient_portal-206c8c68.css" />
+</head>
+
+<body>
+    <div id="app"></div>
+    <div id="modals"></div>
+    <div id="popovers"></div>
+
+    <script>
+        window.csrf_token = "{{ csrf_token }}";
+        window.frappe = window.frappe || {};
+        window.frappe.csrf_token = '{{ boot.csrf_token }}';
+        window.is_registration_page = true;
+        window.frappe_boot = {
+            is_guest: {{ 'true' if boot.is_guest else 'false' }},
+        user_info: { }
+        };
+    </script>
+    <script type="module" src="/assets/healthcare/frontend/assets/patient_portal-f00edbc9.js"></script>
+</body>
+
+</html>

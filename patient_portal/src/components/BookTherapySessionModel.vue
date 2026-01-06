@@ -1,5 +1,5 @@
 <template>
-	<Dialog v-if="show" v-model="show" :options="{ size: '6xl' }" :disable-outside-click-to-close="true">
+	<Dialog v-if="show" v-model="show" :options="{ size: '6xl', title: 'Book Therapy Session' }" :disable-outside-click-to-close="true">
 		<template #body-content>
 			<div class="flex flex-col min-h-[85vh] bg-white rounded-[32px] overflow-hidden">
 				<div class="px-10 pt-10 pb-6 flex items-center justify-between">
@@ -82,23 +82,46 @@
 							<p class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-6 text-center">Select Date</p>
 							<Calendar v-model:selectedDate="selectedDate" />
 						</div>
-						<div>
-							<p class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-6 text-center">Select Time Slot</p>
-							<div class="space-y-4">
-								<FormControl
-									v-model="selectedTime"
-									type="time"
-									class="!rounded-2xl"
-								/>
-								
-								<p class="text-[10px] font-black text-slate-400 uppercase tracking-widest mt-8 mb-4">Select Practitioner (Optional)</p>
-								<FormControl
-									v-model="selectedPractitioner"
-									type="autocomplete"
-									:options="practitionerOptions"
-									class="!rounded-2xl"
-									placeholder="Choose a therapist"
-								/>
+						<div class="flex flex-col h-full">
+							<!-- Practitioner Selection First -->
+							<p class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-4 text-center">Select Practitioner</p>
+							<FormControl
+								v-model="selectedPractitioner"
+								type="select"
+								:options="practitionerOptions"
+								class="!rounded-2xl mb-8"
+								placeholder="Choose a therapist"
+							/>
+
+							<p class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-6 text-center">Available Time Slots</p>
+							
+							<div v-if="fetchSlots.loading" class="flex-1 flex items-center justify-center">
+								<div class="animate-spin w-6 h-6 border-2 border-slate-200 border-t-slate-800 rounded-full"></div>
+							</div>
+							
+							<div v-else-if="availableSlots.length" class="flex-1 overflow-y-auto custom-scrollbar pr-2">
+								<div v-for="(group, label) in groupedSlots" :key="label" class="mb-6">
+									<div v-if="group.length">
+										<h5 class="text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-3 sticky top-0 bg-white py-1">{{ label }}</h5>
+										<div class="grid grid-cols-2 gap-2">
+											<button v-for="slot in group" :key="slot.period" @click="selectedSlot = slot"
+												class="py-3 rounded-xl text-xs font-bold transition-all border"
+												:class="selectedSlot?.period === slot.period 
+													? 'bg-slate-900 border-slate-900 text-white shadow-lg shadow-slate-200 transform scale-105' 
+													: 'bg-white border-slate-100 text-slate-500 hover:border-brand-orange hover:text-brand-orange'"
+											>
+												{{ slot.formattedTime }}
+											</button>
+										</div>
+									</div>
+								</div>
+							</div>
+							
+							<div v-else class="flex-1 flex flex-col items-center justify-center text-center opacity-50">
+								<ClockIcon class="w-8 h-8 mb-3 text-slate-300" />
+								<p class="text-xs font-bold text-slate-400">
+									{{ !selectedDate ? 'Select a date first' : !selectedPractitioner ? 'Select a practitioner' : 'No slots available' }}
+								</p>
 							</div>
 						</div>
 					</div>
@@ -122,11 +145,11 @@
 							</div>
 							<div class="flex justify-between">
 								<span class="text-xs font-bold text-slate-400 uppercase">Schedule</span>
-								<span class="text-sm font-black text-slate-900">{{ selectedDate }} at {{ selectedTime }}</span>
+								<span class="text-sm font-black text-slate-900">{{ selectedDate }} at {{ selectedSlot?.formattedTime }}</span>
 							</div>
 							<div v-if="selectedPractitioner" class="flex justify-between">
 								<span class="text-xs font-bold text-slate-400 uppercase">Therapist</span>
-								<span class="text-sm font-black text-slate-900">{{ selectedPractitioner.label }}</span>
+								<span class="text-sm font-black text-slate-900">{{ practitionerDisplayLabel }}</span>
 							</div>
 							<div v-if="sessionFee > 0" class="flex justify-between pt-4 border-t border-slate-200">
 								<span class="text-xs font-bold text-slate-400 uppercase">Fee</span>
@@ -211,7 +234,7 @@
 <script setup>
 import { ref, computed, onMounted, watch } from 'vue'
 import { createResource, Button, Dialog, FormControl, toast } from 'frappe-ui'
-import { ActivityIcon, CheckCircleIcon } from 'lucide-vue-next'
+import { ActivityIcon, CheckCircleIcon, ClockIcon } from 'lucide-vue-next'
 import Calendar from '@/components/Calendar.vue'
 import Payment from '@/components/Payment.vue'
 
@@ -231,12 +254,13 @@ const error = ref(null)
 const selectedPlan = ref(null)
 const selectedType = ref(null)
 const selectedDate = ref(null)
-const selectedTime = ref('09:00')
+const selectedSlot = ref(null)
 const selectedPractitioner = ref(null)
 
 const therapyPlans = ref([])
 const therapyTypes = ref([])
 const practitionerOptions = ref([])
+const availableSlots = ref([])
 
 const healthcareSettings = ref({})
 const sessionFee = ref(0)
@@ -244,7 +268,13 @@ const currency = ref("")
 const session = ref(null)
 
 const practitionerDisplay = computed(() => {
-	return selectedPractitioner.value?.label || selectedPlan.value?.practitioner_name || 'Therapist'
+    const selected = practitionerOptions.value.find(p => p.value === selectedPractitioner.value)
+	return selected?.label || selectedPlan.value?.practitioner_name || 'Therapist'
+})
+
+const practitionerDisplayLabel = computed(() => {
+    const selected = practitionerOptions.value.find(p => p.value === selectedPractitioner.value)
+	return selected?.label
 })
 
 const totalSteps = computed(() => {
@@ -262,6 +292,7 @@ onMounted(() => {
 
 const fetchSettings = createResource({
 	url: "/api/method/healthcare.healthcare.api.patient_portal.get_settings",
+	method: "GET",
 	onSuccess(data) {
 		healthcareSettings.value = data
 	}
@@ -297,6 +328,20 @@ const fetchTypes = createResource({
 	}
 })
 
+const fetchSlots = createResource({
+	url: 'healthcare.healthcare.api.patient_portal.get_slots',
+	method: 'GET',
+	makeParams() {
+		return {
+			practitioner: selectedPractitioner.value,
+			date: selectedDate.value
+		}
+	},
+	onSuccess(data) {
+		availableSlots.value = data || []
+	}
+})
+
 // Fetch fee when therapy type is selected
 const fetchFee = createResource({
 	url: 'healthcare.healthcare.api.patient_portal.get_therapy_type_fee',
@@ -316,6 +361,14 @@ const selectPlan = (plan) => {
 	fetchTypes.fetch()
 }
 
+watch([selectedDate, selectedPractitioner], ([date, pract]) => {
+	selectedSlot.value = null
+	availableSlots.value = []
+	if (date && pract) {
+		fetchSlots.fetch()
+	}
+})
+
 watch(selectedType, (val) => {
 	if (val) {
 		fetchFee.fetch()
@@ -324,9 +377,26 @@ watch(selectedType, (val) => {
 	}
 })
 
+const groupedSlots = computed(() => {
+	const groups = { "Morning": [], "Afternoon": [], "Evening": [] }
+	if (!availableSlots.value.length) return groups;
+
+	availableSlots.value.forEach(slot => { // slot is time string e.g., "09:00:00"
+		const timeStr = slot.split(':').slice(0, 2).join(':'); // Extract HH:MM
+		const hour = parseInt(slot.split(':')[0]);
+		const formattedTime = new Date(`2000-01-01T${slot}`).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+		const slotObj = { formattedTime, period: timeStr, full: slot };
+		
+		if (hour < 12) groups.Morning.push(slotObj);
+		else if (hour < 17) groups.Afternoon.push(slotObj);
+		else groups.Evening.push(slotObj);
+	});
+	return groups;
+});
+
 const isNextDisabled = computed(() => {
 	if (currentStep.value === 1) return selectedPlan.value && selectedType.value
-	if (currentStep.value === 2) return selectedDate.value && selectedTime.value
+	if (currentStep.value === 2) return selectedDate.value && selectedPractitioner.value && selectedSlot.value
 	return true
 })
 
@@ -341,8 +411,8 @@ const bookSession = async () => {
 					therapy_plan: selectedPlan.value.name,
 					therapy_type: selectedType.value,
 					start_date: selectedDate.value,
-					start_time: selectedTime.value,
-					practitioner: selectedPractitioner.value?.value
+					start_time: selectedSlot.value.period,
+					practitioner: selectedPractitioner.value
 				}
 			},
 			onSuccess(data) {

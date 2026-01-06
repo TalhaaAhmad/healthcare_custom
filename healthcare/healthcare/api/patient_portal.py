@@ -312,10 +312,10 @@ def get_print_format(doctype: str, name: str):
 
 
 def get_patients_with_relations():
-	filters = {"status": "Active"}
-	if frappe.session.user != "Administrator":
-		filters["user_id"] = frappe.session.user
-
+	# Always filter by user_id unless explicit bypass is added later
+	# This ensures even admins see only "their" linked patients in the portal context
+	filters = {"status": "Active", "user_id": frappe.session.user}
+	
 	patients = frappe.db.get_all("Patient", filters=filters, pluck="name")
 	relation = frappe.db.get_all(
 		"Patient Relation", filters={"parent": ["in", patients]}, pluck="patient"
@@ -837,8 +837,160 @@ def get_therapy_plan_frequencies():
 	)
 
 
+@frappe.whitelist()
+def get_therapy_plan_template_details(template_name):
+	"""Fetch therapy plan template details including therapy types"""
+	if not template_name:
+		return None
+	
+	template = frappe.get_doc("Therapy Plan Template", template_name)
+	
+	therapy_types = []
+	for item in template.therapy_types:
+		therapy_types.append({
+			"therapy_type": item.therapy_type,
+			"no_of_sessions": item.no_of_sessions
+		})
+	
+	return {
+		"name": template.name,
+		"plan_name": template.plan_name,
+		"total_sessions": template.total_sessions,
+		"therapy_types": therapy_types
+	}
+
+
+@frappe.whitelist()
+def get_therapy_types_for_plan(therapy_plan):
+	return frappe.db.get_all(
+		"Therapy Plan Detail",
+		filters={"parent": therapy_plan},
+		fields=["therapy_type", "no_of_sessions", "sessions_completed"],
+	)
+
+
+@frappe.whitelist()
+def get_therapy_type_fee(therapy_type):
+	rate = frappe.db.get_value("Therapy Type", therapy_type, "rate")
+	currency = erpnext.get_default_currency()
+	return {"rate": rate, "currency": currency}
+
+
+@frappe.whitelist()
+def get_therapy_types_for_plan(therapy_plan):
+	return frappe.db.get_all(
+		"Therapy Plan Detail",
+		filters={"parent": therapy_plan},
+		fields=["therapy_type", "no_of_sessions", "sessions_completed"],
+	)
+
+
+@frappe.whitelist()
+def get_therapy_sessions():
+	patients = get_patients_with_relations()
+	if not patients:
+		return []
+
+	return frappe.db.get_all(
+		"Therapy Session",
+		filters={"patient": ["in", patients]},
+		fields=[
+			"name",
+			"therapy_type",
+			"therapy_plan",
+			"practitioner",
+			"start_date",
+			"start_time",
+			"start_time",
+			"duration",
+			"invoiced",
+			"docstatus",
+		],
+		order_by="start_date desc, start_time desc",
+	)
+
+
+@frappe.whitelist()
+def make_therapy_session(therapy_plan, therapy_type, start_date, start_time, practitioner=None):
+	plan_doc = frappe.get_doc("Therapy Plan", therapy_plan)
+	
+	# Verify patient access
+	patients = get_patients_with_relations()
+	if plan_doc.patient not in patients:
+		frappe.throw(_("Not authorized to book session for this patient"))
+
+	session = frappe.new_doc("Therapy Session")
+	session.therapy_plan = therapy_plan
+	session.patient = plan_doc.patient
+	session.therapy_type = therapy_type
+	session.start_date = start_date
+	session.start_time = start_time
+	
+	if practitioner:
+		session.practitioner = practitioner
+	
+	# Fetch duration from Therapy Type
+	if not session.duration:
+		session.duration = frappe.db.get_value("Therapy Type", therapy_type, "default_duration")
+
+	session.insert(ignore_permissions=True)
+	return session
+
+
+@frappe.whitelist()
+def cancel_therapy_plan(therapy_plan):
+	# Verify patient access
+	plan = frappe.get_doc("Therapy Plan", therapy_plan)
+	patients = get_patients_with_relations()
+	if plan.patient not in patients:
+		frappe.throw(_("Not authorized to cancel this plan"))
+
+	# Update Plan Status
+	if plan.status != "Cancelled":
+		frappe.db.set_value("Therapy Plan", plan.name, "status", "Cancelled")
+		frappe.db.commit()
+	
+	# Cancel future sessions
+	from frappe.utils import now_datetime
+	future_sessions = frappe.db.get_all("Therapy Session", filters={
+		"therapy_plan": therapy_plan,
+		"start_date": [">=", frappe.utils.nowdate()],
+		"invoiced": 0
+	}, fields=["name", "start_date", "start_time", "docstatus"])
+	
+	for session_data in future_sessions:
+		# Check time for today's sessions
+		s_dt = datetime.combine(getdate(session_data.start_date), get_time(session_data.start_time))
+		if s_dt < now_datetime():
+			continue 
+			
+		try:
+			if session_data.docstatus == 1:
+				frappe.get_doc("Therapy Session", session_data.name).cancel()
+			else:
+				frappe.delete_doc("Therapy Session", session_data.name)
+		except Exception:
+			pass
+			
+	return {"status": "success"}
+
+
+@frappe.whitelist()
+def get_therapy_plans():
+	patients = get_patients_with_relations()
+	if not patients:
+		return []
+
+	return frappe.db.get_all(
+		"Therapy Plan",
+		filters={"patient": ["in", patients], "status": ["!=", "Cancelled"]},
+		fields=["name", "therapy_plan_template", "start_date", "status", "total_sessions", "total_sessions_completed", "patient_name", "patient"],
+		order_by="start_date desc"
+	)
+
+
 @frappe.whitelist(methods=["POST"])
-def create_therapy_plan(template, patient, sessions=None, relative_details=None, frequency=None):
+def create_therapy_plan(template, patient, sessions=None, relative_details=None, frequency=None, start_date=None):
 	if relative_details:
 		if isinstance(relative_details, str):
 			relative_details = json.loads(relative_details)
@@ -873,12 +1025,13 @@ def create_therapy_plan(template, patient, sessions=None, relative_details=None,
 	plan = frappe.new_doc("Therapy Plan")
 	plan.patient = patient
 	plan.therapy_plan_template = template
-	plan.start_date = getdate()
+	plan.set_therapy_details_from_template()
+	plan.start_date = start_date or getdate()
 	
 	if frequency:
 		plan.frequency = frequency
 
-	plan.company = frappe.db.get_single_value("Healthcare Settings", "default_company") or frappe.defaults.get_user_default("Company")
+	plan.company = frappe.defaults.get_user_default("Company") or frappe.db.get_single_value("Global Defaults", "default_company")
 	plan.status = "Not Started"
 	plan.insert(ignore_permissions=True)
 
@@ -904,6 +1057,7 @@ def create_session(plan, data):
 	session.insert(ignore_permissions=True)
 
 
+
 @frappe.whitelist(methods=["POST"])
 def cancel_appointment(appointment_id):
 	appointment = frappe.get_doc("Patient Appointment", appointment_id)
@@ -916,3 +1070,76 @@ def cancel_appointment(appointment_id):
 	appointment.status = "Cancelled"
 	appointment.save(ignore_permissions=True)
 	return True
+
+
+@frappe.whitelist(methods=["POST"])
+def cancel_therapy_session(session_id):
+	session = frappe.get_doc("Therapy Session", session_id)
+	
+	# Verify patient access
+	patients = get_patients_with_relations()
+	if session.patient not in patients:
+		frappe.throw(_("Not authorized to cancel this session"))
+
+	if session.docstatus == 2: # Cancelled
+		frappe.throw(_("Session is already cancelled"))
+
+	if session.invoiced:
+		frappe.throw(_("Cannot cancel an invoiced session"))
+
+	if session.docstatus == 0: # Draft
+		# Delete draft sessions
+		frappe.delete_doc("Therapy Session", session.name, ignore_permissions=True)
+	elif session.docstatus == 1: # Submitted
+		# Cancel submitted sessions
+		session.flags.ignore_permissions = True
+		session.cancel()
+		
+	return True
+
+
+@frappe.whitelist(allow_guest=True, methods=["POST"])
+def register_patient(first_name, last_name, email, mobile, gender):
+	"""
+	Register a new patient with user account creation.
+	This is accessible to guest users for self-registration.
+	"""
+	# Validate required fields
+	if not first_name:
+		frappe.throw(_("First Name is required"))
+	if not email:
+		frappe.throw(_("Email is required"))
+	if not gender:
+		frappe.throw(_("Gender is required"))
+	
+	# Check for existing user with same email
+	if frappe.db.exists("User", {"email": email}):
+		frappe.throw(_("An account with this email already exists. Please login instead."))
+	
+	# Check for existing user with same mobile
+	if mobile and frappe.db.exists("User", {"mobile_no": mobile}):
+		frappe.throw(_("An account with this mobile number already exists."))
+	
+	try:
+		# Create the patient record
+		patient = frappe.new_doc("Patient")
+		patient.first_name = first_name
+		patient.last_name = last_name
+		patient.email = email
+		patient.mobile = mobile
+		patient.sex = gender
+		patient.status = "Active"
+		patient.invite_user = 1  # This triggers user creation via create_website_user()
+		
+		patient.insert(ignore_permissions=True)
+		
+		return {
+			"success": True,
+			"message": _("Registration successful! Please check your email for login instructions."),
+			"patient": patient.name
+		}
+	except frappe.exceptions.DuplicateEntryError as e:
+		frappe.throw(_("An account with this email or mobile already exists."))
+	except Exception as e:
+		frappe.log_error(f"Patient registration error: {str(e)}", "Patient Registration")
+		frappe.throw(_("Registration failed. Please try again."))

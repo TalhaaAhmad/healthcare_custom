@@ -5,6 +5,7 @@ import { initSocket } from './socket'
 
 import './index.css'
 
+// Force hash update 2
 import {
 	FrappeUI,
 	Button,

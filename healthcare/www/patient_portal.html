@@ -6,7 +6,7 @@
   <link rel="icon" href="/favicon.png" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Patient Portal</title>
-  <link rel="stylesheet" href="/assets/healthcare/frontend/assets/patient_portal-6efd6d62.css" />
+  <link rel="stylesheet" href="/assets/healthcare/frontend/assets/patient_portal-e602c055.css" />
 </head>
 
 <body>
@@ -15,11 +15,15 @@
   <div id="popovers"></div>
 
   <script>
-    window.csrf_token = "{{ csrf_token }}";
+    window.csrf_token = "{{ boot.csrf_token }}";
     window.frappe = window.frappe || {};
-    window.frappe.csrf_token = '{{ boot.csrf_token }}';
+    window.frappe.csrf_token = "{{ boot.csrf_token }}";
+    window.frappe_boot = {
+      is_guest: {% if boot.is_guest %}true{% else %} false{% endif %},
+    user_info: { { boot.user_info | tojson } }
+    };
   </script>
-  <script type="module" src="/assets/healthcare/frontend/assets/patient_portal-463800ec.js"></script>
+  <script type="module" src="/assets/healthcare/frontend/assets/patient_portal-04fa1a16.js"></script>
 </body>
 
 </html>

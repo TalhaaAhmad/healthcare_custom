@@ -2,8 +2,8 @@
 	<!-- Standardized Slate-50 Background for a quiet feel -->
 	<div class="h-screen flex flex-col bg-slate-50 font-sans antialiased text-slate-600">
 		
-		<!-- Compact Studio Header (Slimmer py-2.5) -->
-		<header class="sticky top-0 w-full z-[100] bg-white/70 backdrop-blur-md border-b border-slate-200/60 px-6 lg:px-10 py-2.5">
+		<!-- Compact Studio Header (Slimmer py-2.5) - Hidden on registration page -->
+		<header v-if="!hideLayout" class="sticky top-0 w-full z-[100] bg-white/70 backdrop-blur-md border-b border-slate-200/60 px-6 lg:px-10 py-2.5">
 			<div class="max-w-[1400px] mx-auto flex items-center justify-between">
 				
 				<!-- Precise Brand Identity -->
@@ -75,7 +75,7 @@
 
 		<!-- Main content handles the page-level scrolling -->
 		<main class="flex-1 overflow-y-auto custom-scrollbar">
-			<div class="max-w-[1400px] mx-auto w-full min-h-full">
+			<div :class="hideLayout ? 'h-full' : 'max-w-[1400px] mx-auto w-full min-h-full'">
 				<router-view v-slot="{ Component }">
 					<transition 
 						name="page-fade" 
@@ -88,8 +88,8 @@
 			</div>
 		</main>
 
-		<!-- Minimalist Utility Footer -->
-		<footer class="px-10 py-4 bg-white border-t border-slate-100 flex items-center justify-between">
+		<!-- Minimalist Utility Footer - Hidden on registration page -->
+		<footer v-if="!hideLayout" class="px-10 py-4 bg-white border-t border-slate-100 flex items-center justify-between">
 			<div class="flex items-center gap-1.5">
 				<div class="w-1 h-1 rounded-full bg-slate-300"></div>
 				<p class="text-[9px] font-bold text-slate-300 uppercase tracking-[0.2em]">© 2026 Patient Portal</p>
@@ -135,6 +135,7 @@ const dialog_message = ref("")
 const bootData = window.frappe_boot || {}
 const isGuest = computed(() => bootData.is_guest)
 const userInfo = computed(() => bootData.user_info || {})
+const hideLayout = computed(() => route.meta?.hideLayout === true)
 const patient = ref(JSON.parse(localStorage.getItem("patient")))
 
 const userMenuOptions = [
@@ -145,6 +146,7 @@ const userMenuOptions = [
 
 const get_logged_in_patient = createResource({
 	url: "/api/method/healthcare.healthcare.api.patient_portal.get_logged_in_patient",
+	method: 'GET',
 	onSuccess(response) {
 		if (response) {
 			patient.value = response
