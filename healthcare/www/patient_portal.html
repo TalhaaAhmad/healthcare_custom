@@ -6,7 +6,7 @@
   <link rel="icon" href="/favicon.png" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Patient Portal</title>
-  <link rel="stylesheet" href="/assets/healthcare/frontend/assets/patient_portal-e602c055.css" />
+  <link rel="stylesheet" href="/assets/healthcare/frontend/assets/patient_portal-66691c4a.css" />
 </head>
 
 <body>
@@ -19,11 +19,11 @@
     window.frappe = window.frappe || {};
     window.frappe.csrf_token = "{{ boot.csrf_token }}";
     window.frappe_boot = {
-      is_guest: {% if boot.is_guest %}true{% else %} false{% endif %},
-    user_info: { { boot.user_info | tojson } }
+      is_guest: {{ 'true' if boot.is_guest else 'false' }},
+      user_info: {{ boot.user_info | tojson }}
     };
   </script>
-  <script type="module" src="/assets/healthcare/frontend/assets/patient_portal-04fa1a16.js"></script>
+  <script type="module" src="/assets/healthcare/frontend/assets/patient_portal-3a1e4a7f.js"></script>
 </body>
 
 </html>

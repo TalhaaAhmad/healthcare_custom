@@ -472,37 +472,64 @@ async function bookSlot() {
 		return;
 	}
 
-	const bookAppointment = createResource({
-		url: "/api/method/healthcare.healthcare.api.patient_portal.make_appointment",
-		method: "POST",
-		makeParams() {
-			const patientValue = selectedPatient.value?.value || selectedPatient.value;
-			return {
-				practitioner: selectedPractitioner.value.name,
-				patient: patientValue,
-				date: selectedDate.value,
-				slot: selectedSlot.value.slot,
-				appointment_id: props.reschedule_appointment ? props.reschedule_appointment.name : null,
-				relative_details: patientValue === 'new' ? relativeDetails.value : null
-			};
-		},
-		onSuccess(response) {
-			if (response) {
-				appointment.value = response;
-				show_calendar.value = false;
-				booked.value = true;
-				currentStep.value = intervalCount.value;
-				if (!healthcareSettings.value.collect_payment) success.value = true;
-			}
-		},
-		onError(e) {
-			error.value = e.messages?.[0] || e;
-		}
-	});
-
 	try {
 		bookingLoading.value = true;
-		await bookAppointment.submit();
+		
+		// Get CSRF token from window globals
+		const csrfToken = window.csrf_token || window.frappe?.csrf_token || '';
+		
+		const patientValue = selectedPatient.value?.value || selectedPatient.value;
+		const params = {
+			practitioner: selectedPractitioner.value.name,
+			patient: patientValue,
+			date: selectedDate.value,
+			slot: selectedSlot.value.slot,
+			appointment_id: props.reschedule_appointment ? props.reschedule_appointment.name : null,
+			relative_details: patientValue === 'new' ? relativeDetails.value : null
+		};
+		
+		const response = await fetch('/api/method/healthcare.healthcare.api.patient_portal.make_appointment', {
+			method: 'POST',
+			headers: {
+				'Content-Type': 'application/json',
+				'Accept': 'application/json',
+				'X-Frappe-CSRF-Token': csrfToken
+			},
+			body: JSON.stringify(params)
+		});
+		
+		const data = await response.json();
+		
+		if (!response.ok) {
+			// Handle error response
+			let errorMsg = 'Failed to book appointment';
+			if (data._server_messages) {
+				try {
+					const messages = JSON.parse(data._server_messages);
+					errorMsg = messages[0]?.replace(/<[^>]*>/g, '') || errorMsg;
+				} catch (e) {
+					errorMsg = data._server_messages;
+				}
+			} else if (data.exception) {
+				errorMsg = data.exception;
+			} else if (data.message) {
+				errorMsg = data.message;
+			}
+			error.value = errorMsg;
+			return;
+		}
+		
+		// Success - data.message contains the appointment doc
+		if (data.message) {
+			appointment.value = data.message;
+			show_calendar.value = false;
+			booked.value = true;
+			currentStep.value = intervalCount.value;
+			if (!healthcareSettings.value.collect_payment) success.value = true;
+		}
+	} catch (e) {
+		console.error('Booking error:', e);
+		error.value = 'An unexpected error occurred. Please try again.';
 	} finally {
 		bookingLoading.value = false;
 	}
