@@ -47,15 +47,15 @@
 					<!-- Compact User Dropdown -->
 					<div v-if="!isGuest" class="flex items-center">
 						<Dropdown :options="userMenuOptions">
-							<template #target>
-								<button class="flex items-center gap-2 group">
+							<template #default="{ open }">
+								<button class="flex items-center gap-1.5 group p-1 pr-2 rounded-xl hover:bg-slate-100/80 transition-all">
 									<Avatar
 										:image="userInfo.image"
-										:label="userInfo.full_name"
-										size="sm"
-										class="rounded-lg border border-slate-100 shadow-sm"
+										:label="userInfo.full_name || 'User'"
+										size="md"
+										class="rounded-xl ring-2 ring-slate-100 group-hover:ring-brand-orange/30 transition-all shadow-sm"
 									/>
-									<ChevronDownIcon class="w-3 h-3 text-slate-300 group-hover:text-slate-600 transition-colors" />
+									<ChevronDownIcon class="w-3.5 h-3.5 text-slate-400 group-hover:text-slate-600 transition-colors" />
 								</button>
 							</template>
 						</Dropdown>
@@ -138,10 +138,25 @@ const userInfo = computed(() => bootData.user_info || {})
 const hideLayout = computed(() => route.meta?.hideLayout === true)
 const patient = ref(JSON.parse(localStorage.getItem("patient")))
 
+const handleLogout = async () => {
+	try {
+		await fetch('/api/method/logout', {
+			method: 'POST',
+			headers: {
+				'X-Frappe-CSRF-Token': window.csrf_token || window.frappe?.csrf_token
+			}
+		})
+	} catch (e) {
+		// Ignore network errors during logout
+	}
+	localStorage.removeItem('patient')
+	window.location.href = '/login'
+}
+
 const userMenuOptions = [
 	{ label: 'Portal Home', onClick: () => router.push('/'), icon: 'home' },
 	{ label: 'Appointments', onClick: () => router.push('/dashboard'), icon: 'calendar' },
-	{ label: 'Logout', onClick: () => window.location.href = '/api/method/logout', icon: 'log-out' }
+	{ label: 'Logout', onClick: handleLogout, icon: 'log-out' }
 ]
 
 const get_logged_in_patient = createResource({

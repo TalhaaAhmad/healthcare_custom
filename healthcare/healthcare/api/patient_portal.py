@@ -1060,15 +1060,19 @@ def create_session(plan, data):
 
 @frappe.whitelist(methods=["POST"])
 def cancel_appointment(appointment_id):
+	from healthcare.healthcare.doctype.patient_appointment.patient_appointment import update_status
+
 	appointment = frappe.get_doc("Patient Appointment", appointment_id)
-	if appointment.patient != frappe.db.get_value("Patient", {"user_id": frappe.session.user}, "name"):
+	
+	# Check authorization - verify patient belongs to current user or their relations
+	patients = get_patients_with_relations()
+	if appointment.patient not in patients:
 		frappe.throw(_("Not authorized to cancel this appointment"))
 	
 	if appointment.status == "Cancelled":
 		frappe.throw(_("Appointment is already cancelled"))
 
-	appointment.status = "Cancelled"
-	appointment.save(ignore_permissions=True)
+	update_status(appointment_id, "Cancelled")
 	return True
 
 
@@ -1088,6 +1092,23 @@ def cancel_therapy_session(session_id):
 		frappe.throw(_("Cannot cancel an invoiced session"))
 
 	if session.docstatus == 0: # Draft
+		# Check for linked Payment Records
+		payment_records = frappe.get_all(
+			"Healthcare Payment Record",
+			filters={
+				"payment_for_doctype": "Therapy Session",
+				"payment_for_document": session.name
+			},
+			fields=["name", "status"]
+		)
+		
+		for payment in payment_records:
+			if payment.status == "Captured":
+				frappe.throw(_("Cannot cancel session with captured payment"))
+			else:
+				# Delete pending/failed payments to allow session deletion
+				frappe.delete_doc("Healthcare Payment Record", payment.name, ignore_permissions=True)
+
 		# Delete draft sessions
 		frappe.delete_doc("Therapy Session", session.name, ignore_permissions=True)
 	elif session.docstatus == 1: # Submitted

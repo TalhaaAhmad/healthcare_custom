@@ -169,7 +169,7 @@
 					<!-- Footer Actions (Styled within Dialog Content) -->
 					<div v-if="['Scheduled', 'Open', 'Confirmed'].includes(selectedAppointment.status)" class="flex flex-col sm:flex-row items-center justify-end gap-3 pt-4">
 						<button class="text-slate-400 hover:text-red-500 px-6 py-2 font-bold text-sm transition-colors" @click="confirmCancel(selectedAppointment)">
-							{{ cancelling ? 'Processing...' : 'Cancel Appointment' }}
+							Cancel Appointment
 						</button>
 						<button class="bg-slate-900 text-white px-8 py-3 rounded-2xl font-bold hover:bg-slate-800 transition-all flex items-center gap-2" @click="openReschedule(selectedAppointment)">
 							<RotateCwIcon class="w-4 h-4" />
@@ -183,6 +183,24 @@
 		<!-- Other Dialogs -->
 		<BookAppointmentModel v-if="make_appointment_dialog" v-model="make_appointment_dialog" @appointment_booked="get_appointments.reload()" />
 		<BookAppointmentModel v-if="reschedule_dialog" v-model="reschedule_dialog" :reschedule_appointment="selectedAppointment" @appointment_booked="onRescheduled" />
+
+		<!-- Cancel Dialog -->
+		<Dialog v-model="showCancelDialog" :options="{ title: 'Cancel Appointment' }">
+			<template #body-content>
+				<div class="p-6">
+					<p class="text-sm text-slate-600">
+						Are you sure you want to cancel the appointment with <span class="font-bold">{{ appointmentToCancel?.practitioner_name }}</span> on {{ formatDate(appointmentToCancel?.appointment_date) }}?
+						This action cannot be undone.
+					</p>
+				</div>
+			</template>
+			<template #actions>
+				<div class="flex justify-end gap-2 p-4 bg-slate-50 rounded-b-lg">
+					<Button variant="subtle" @click="showCancelDialog = false">Keep Appointment</Button>
+					<Button variant="solid" theme="red" :loading="cancelAppointment.loading" @click="cancelAppointment.submit()">Confirm Cancellation</Button>
+				</div>
+			</template>
+		</Dialog>
 	</Teleport>
 </template>
 <script setup>
@@ -213,6 +231,7 @@ import {
 const appointment_details = ref(false);
 const make_appointment_dialog = ref(false);
 const reschedule_dialog = ref(false);
+const showCancelDialog = ref(false);
 const alert_dialog = ref(false);
 
 const appointments = ref([]);
@@ -220,6 +239,7 @@ const currentPage = ref(1);
 const pageSize = 9; // Grid of 3x3 looks good
 
 const selectedAppointment = ref(null);
+const appointmentToCancel = ref(null);
 const dialog_title = ref("");
 const dialog_message = ref("");
 
@@ -300,29 +320,31 @@ const getStatusClasses = (status) => {
 	}
 }
 
-const cancelling = ref(false)
-const confirmCancel = async (appointment) => {
-	if (!confirm('Are you sure you want to cancel this appointment?')) return
-	
-	cancelling.value = true
-	try {
-		await frappe.call({
-			method: 'healthcare.healthcare.api.patient_portal.cancel_appointment',
-			args: {
-				appointment_id: appointment.name
-			}
-		})
-		
-		get_appointments.fetch()
-		// toast.success('Appointment cancelled successfully')
-	} catch (e) {
-		console.error(e)
-		// toast.error(e.messages?.[0] || 'Cancellation failed')
-	} finally {
-		cancelling.value = false
-		appointment_details.value = false
-	}
+const confirmCancel = (appointment) => {
+	appointmentToCancel.value = appointment;
+	showCancelDialog.value = true;
 }
+
+const cancelAppointment = createResource({
+	url: 'healthcare.healthcare.api.patient_portal.cancel_appointment',
+	makeParams() {
+		return { appointment_id: appointmentToCancel.value?.name }
+	},
+	onSuccess() {
+		showCancelDialog.value = false;
+		appointmentToCancel.value = null;
+		toast.success('Appointment cancelled successfully');
+		get_appointments.fetch();
+		appointment_details.value = false;
+	},
+	onError(error) {
+		let errorMsg = 'Cancellation failed';
+		if (error.messages) {
+			errorMsg = error.messages[0];
+		}
+		toast.error(errorMsg);
+	}
+})
 
 const openReschedule = (appointment) => {
 	selectedAppointment.value = appointment;

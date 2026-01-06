@@ -7,7 +7,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Patient Registration</title>
     <meta name="description" content="Register as a patient to access the healthcare portal" />
-    <link rel="stylesheet" href="/assets/healthcare/frontend/assets/patient_portal-66691c4a.css" />
+    <link rel="stylesheet" href="/assets/healthcare/frontend/assets/patient_portal-3c65da7a.css" />
 </head>
 
 <body>
@@ -15,6 +15,7 @@
     <div id="modals"></div>
     <div id="popovers"></div>
 
+    <!-- prettier-ignore -->
     <script>
         window.csrf_token = "{{ boot.csrf_token }}";
         window.frappe = window.frappe || {};
@@ -22,10 +23,10 @@
         window.is_registration_page = true;
         window.frappe_boot = {
             is_guest: {{ 'true' if boot.is_guest else 'false' }},
-            user_info: {}
+        user_info: { }
         };
     </script>
-    <script type="module" src="/assets/healthcare/frontend/assets/patient_portal-3a1e4a7f.js"></script>
+    <script type="module" src="/assets/healthcare/frontend/assets/patient_portal-01d29794.js"></script>
 </body>
 
 </html>

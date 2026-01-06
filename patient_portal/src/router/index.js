@@ -68,9 +68,9 @@ router.beforeEach((to, from, next) => {
         pathname: window.location.pathname
     })
 
-    // If route requires auth and user is NOT authenticated, redirect to registration
+    // If route requires auth and user is NOT authenticated, redirect to login
     if (to.meta.requiresAuth && !isAuthenticated) {
-        next({ name: 'Register' })
+        window.location.href = '/login?redirect-to=/patient_portal'
         return
     }
 
