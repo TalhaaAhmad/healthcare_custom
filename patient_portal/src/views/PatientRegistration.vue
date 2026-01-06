@@ -10,8 +10,8 @@
 		<div class="relative w-full max-w-md">
 			<!-- Logo & Header -->
 			<div class="text-center mb-8">
-				<div class="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br from-indigo-500 to-indigo-600 rounded-2xl shadow-lg shadow-indigo-200 mb-4">
-					<UserPlusIcon class="w-8 h-8 text-white" />
+				<div class="inline-flex items-center justify-center mb-4">
+					<img :src="'/assets/healthcare/images/zan-center-for-women-logo.png'" alt="Zan Center for Women" class="h-24 object-contain" />
 				</div>
 				<h1 class="text-2xl font-bold text-slate-900">Create Your Account</h1>
 				<p class="text-sm text-slate-500 mt-2">Register to access the patient portal</p>
@@ -114,7 +114,8 @@
 					<button 
 						type="submit" 
 						:disabled="loading"
-						class="w-full py-4 bg-gradient-to-r from-indigo-500 to-indigo-600 text-white font-semibold rounded-xl shadow-lg shadow-indigo-200 hover:from-indigo-600 hover:to-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+						class="w-full py-4 bg-indigo-600 text-white font-bold rounded-xl shadow-lg shadow-indigo-200 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+						style="background-color: #4f46e5; color: white;"
 					>
 						<span v-if="loading" class="inline-flex items-center gap-2">
 							<LoaderIcon class="w-4 h-4 animate-spin" />
