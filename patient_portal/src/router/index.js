@@ -58,6 +58,12 @@ function isUserAuthenticated() {
 
 // Navigation guard for authentication
 router.beforeEach((to, from, next) => {
+    // If on registration page, default strict '/' to '/register' to avoid auth redirect
+    if (window.is_registration_page && to.path === '/') {
+        next({ name: 'Register' })
+        return
+    }
+
     const isAuthenticated = isUserAuthenticated()
 
     // Debug logging (remove in production)
