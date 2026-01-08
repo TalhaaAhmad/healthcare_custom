@@ -239,15 +239,8 @@ def make_appointment(practitioner, patient, date, slot, relative_details=None, a
 	if service_unit:
 		doc.service_unit = service_unit
 
-	# Get billing details if available
-	try:
-		practitioner_service = get_appointment_billing_item_and_rate(doc)
-		if practitioner_service.get("service_item"):
-			doc.billing_item = practitioner_service["service_item"]
-		if practitioner_service.get("practitioner_charge"):
-			doc.paid_amount = practitioner_service["practitioner_charge"]
-	except Exception:
-		pass  # Billing fields are optional
+	# Set status to Open (Unpaid) initially
+	doc.status = "Open"
 	
 	doc.save(ignore_permissions=True)
 	return doc

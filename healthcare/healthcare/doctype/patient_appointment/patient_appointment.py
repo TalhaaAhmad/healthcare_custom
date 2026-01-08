@@ -84,7 +84,7 @@ class PatientAppointment(Document):
 			if self.status not in ["Checked In", "Checked Out", "Open", "Confirmed"]:
 				self.status = "Open"
 
-		elif appointment_date > today and self.status not in ["Scheduled", "Confirmed"]:
+		elif appointment_date > today and self.status not in ["Scheduled", "Confirmed", "Open"]:
 			self.status = "Scheduled"
 
 		elif appointment_date < today and self.status != "No Show":
