@@ -229,6 +229,23 @@
 			</div>
 		</template>
 	</Dialog>
+
+	<Dialog v-if="showWarning" v-model="showWarning" :options="{ size: 'md', title: 'Plan Completed' }">
+		<template #body-content>
+			<div class="p-6 text-center">
+				<div class="w-16 h-16 bg-orange-50 rounded-full flex items-center justify-center mx-auto mb-4">
+					<ActivityIcon class="w-8 h-8 text-orange-500" />
+				</div>
+				<h3 class="text-lg font-bold text-slate-900 mb-2">Therapy Plan Completed</h3>
+				<p class="text-slate-500 text-sm mb-6">
+					This therapy plan has been completed. Kindly select another active plan or book a new plan.
+				</p>
+				<Button variant="solid" @click="showWarning = false" class="w-full">
+					Okay, Got it
+				</Button>
+			</div>
+		</template>
+	</Dialog>
 </template>
 
 <script setup>
@@ -250,6 +267,7 @@ const currentStep = ref(1)
 const bookingLoading = ref(false)
 const success = ref(false)
 const error = ref(null)
+const showWarning = ref(false)
 
 const selectedPlan = ref(null)
 const selectedType = ref(null)
@@ -356,6 +374,13 @@ const fetchFee = createResource({
 })
 
 const selectPlan = (plan) => {
+	console.log('Selected Plan:', plan.name, 'Status:', plan.status)
+	if (plan.status && plan.status.trim().toLowerCase() === 'completed') {
+		console.log('Triggering warning dialog...')
+		showWarning.value = true
+		return
+	}
+	console.log('Proceeding with plan selection...')
 	selectedPlan.value = plan
 	selectedType.value = null
 	fetchTypes.fetch()

@@ -118,8 +118,14 @@ def get_slots(practitioner, date):
 		"Patient Appointment",
 		filters={"practitioner": practitioner_doc.name, "appointment_date": date},
 		pluck="appointment_time",
+	)	
+	therapy_bookings = frappe.db.get_all(
+		"Therapy Session",
+		filters={"practitioner": practitioner_doc.name, "start_date": date, "docstatus": ["!=", 2]},
+		pluck="start_time"
 	)
-	booked_slots = [(datetime.min + booked_slot).time() for booked_slot in curr_bookings]
+	
+	booked_slots = [(datetime.min + booked_slot).time() for booked_slot in curr_bookings + therapy_bookings]
 
 	available_slots = full_slots = []
 	weekday = date.strftime("%A")
@@ -911,6 +917,9 @@ def make_therapy_session(therapy_plan, therapy_type, start_date, start_time, pra
 	patients = get_patients_with_relations()
 	if plan_doc.patient not in patients:
 		frappe.throw(_("Not authorized to book session for this patient"))
+	
+	if plan_doc.status == "Completed":
+		frappe.throw(_("Cannot book session for a completed therapy plan"))
 
 	session = frappe.new_doc("Therapy Session")
 	session.therapy_plan = therapy_plan
@@ -926,7 +935,12 @@ def make_therapy_session(therapy_plan, therapy_type, start_date, start_time, pra
 	if not session.duration:
 		session.duration = frappe.db.get_value("Therapy Type", therapy_type, "default_duration")
 
-	session.insert(ignore_permissions=True)
+	try:
+		session.insert(ignore_permissions=True)
+	except Exception as e:
+		frappe.log_error(f"Failed to create session: {str(e)}", "Therapy Session Booking Failed")
+		frappe.throw(_("Could not book session. Please contact support."))
+
 	return session
 
 
@@ -1157,3 +1171,57 @@ def register_patient(first_name, last_name, email, mobile, gender):
 	except Exception as e:
 		frappe.log_error(f"Patient registration error: {str(e)}", "Patient Registration")
 		frappe.throw(_("Registration failed. Please try again."))
+
+
+@frappe.whitelist()
+def retry_payment(doctype, docname):
+	doc = frappe.get_doc(doctype, docname)
+	patients = get_patients_with_relations()
+	
+	if doc.patient not in patients:
+		frappe.throw(_("Not authorized to pay for this document"))
+
+	amount = 0
+	title = ""
+	currency = erpnext.get_default_currency()
+	
+	if doctype == "Patient Appointment":
+		if doc.status not in ["Open"]:
+			frappe.throw(_("This appointment is not in a payable state"))
+		
+		# Calculate fee
+		try:
+			billing_details = get_appointment_billing_item_and_rate(doc)
+			amount = billing_details.get("practitioner_charge", 0)
+		except Exception:
+			amount = 0
+			
+		title = f"Appointment with {doc.practitioner_name}"
+		
+	elif doctype == "Therapy Session":
+		if doc.invoiced:
+			frappe.throw(_("This session is already invoiced"))
+		if doc.docstatus == 2:
+			frappe.throw(_("Cannot pay for cancelled session"))
+
+		# Calculate fee
+		rate_data = get_therapy_type_fee(doc.therapy_type)
+		amount = rate_data.get("rate", 0)
+		title = f"Therapy Session - {doc.therapy_type}"
+	
+	else:
+		frappe.throw(_("Invalid Document Type"))
+
+	if amount <= 0:
+		frappe.throw(_("No payment required for this record"))
+
+	return get_payment_link(
+		doctype=doctype,
+		docname=docname,
+		title=title,
+		amount=amount,
+		total_amount=amount,
+		currency=currency,
+		patient=doc.patient,
+		redirect_to="/patient_portal"
+	)

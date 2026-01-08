@@ -1,13 +1,13 @@
 {
   "src/patient_portal.css": {
-    "file": "assets/patient_portal-65de051a.css",
+    "file": "assets/patient_portal-1a33b8d3.css",
     "src": "src/patient_portal.css"
   },
   "src/patient_portal.js": {
     "css": [
-      "assets/patient_portal-65de051a.css"
+      "assets/patient_portal-1a33b8d3.css"
     ],
-    "file": "assets/patient_portal-0c8265ef.js",
+    "file": "assets/patient_portal-b25c5781.js",
     "isEntry": true,
     "src": "src/patient_portal.js"
   }

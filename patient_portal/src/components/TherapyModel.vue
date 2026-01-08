@@ -50,10 +50,10 @@
 				<div class="pt-6 mt-6 border-t border-slate-50 flex justify-between items-center">
 					<p class="text-xs font-medium text-slate-400 italic">Started on {{ plan.start_date }}</p>
 					<div class="flex items-center gap-4">
-						<button v-if="plan.status !== 'Cancelled'" @click="confirmCancel(plan)" class="text-[10px] font-bold text-red-400 uppercase tracking-widest hover:text-red-500 transition-colors">
+						<button v-if="!['Cancelled', 'Completed'].includes(plan.status)" @click="confirmCancel(plan)" class="text-[10px] font-bold text-red-400 uppercase tracking-widest hover:text-red-500 transition-colors">
 							Cancel Plan
 						</button>
-						<button @click="openBooking(plan)" class="text-xs font-black text-brand-orange uppercase tracking-widest hover:translate-x-1 transition-transform">
+						<button v-if="!['Cancelled', 'Completed'].includes(plan.status)" @click="openBooking(plan)" class="text-xs font-black text-brand-orange uppercase tracking-widest hover:translate-x-1 transition-transform">
 							Book Session →
 						</button>
 					</div>
@@ -118,6 +118,12 @@
 											@click="confirmCancelSession(session)"
 										>
 											Cancel
+										</button>
+										<button 
+											class="ml-3 text-[10px] font-bold text-brand-orange hover:text-brand-orange/80 uppercase tracking-widest transition-colors"
+											@click="retryPayment(session)"
+										>
+											Pay Now
 										</button>
 									</div>
 								</td>
@@ -245,4 +251,37 @@ const cancelSession = createResource({
 		refreshData()
 	}
 })
+
+const retryPaymentResource = createResource({
+	url: 'healthcare.healthcare.api.patient_portal.retry_payment',
+	makeParams(values) {
+		return {
+			doctype: 'Therapy Session',
+			docname: values.name
+		}
+	},
+})
+
+const retryPayment = (session) => {
+	retryPaymentResource.submit(
+		{ name: session.name },
+		{
+			onSuccess(data) {
+				if (data && data.includes('<form')) {
+					const div = document.createElement('div')
+					div.style.display = 'none'
+					div.innerHTML = data
+					document.body.appendChild(div)
+					const form = div.querySelector('form')
+					if (form) form.submit()
+				} else if (data) {
+					window.location.href = data
+				}
+			},
+			onError(err) {
+				toast.error(err.messages?.[0] || 'Payment initiation failed')
+			}
+		}
+	)
+}
 </script>

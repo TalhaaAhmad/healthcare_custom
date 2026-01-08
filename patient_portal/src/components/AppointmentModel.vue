@@ -175,6 +175,9 @@
 							<RotateCwIcon class="w-4 h-4" />
 							Reschedule
 						</button>
+						<button v-if="selectedAppointment.status === 'Open'" class="bg-brand-orange text-white px-8 py-3 rounded-2xl font-bold hover:bg-brand-orange/90 transition-all flex items-center gap-2" @click="retryPayment(selectedAppointment)" :disabled="retryPaymentResource.loading">
+							Pay Now
+						</button>
 					</div>
 				</div>
 			</template>
@@ -406,6 +409,39 @@ function print(doctype, docname) {
 		}
 	});
 	get_print_format.fetch();
+}
+
+const retryPaymentResource = createResource({
+	url: 'healthcare.healthcare.api.patient_portal.retry_payment',
+	makeParams(values) {
+		return {
+			doctype: 'Patient Appointment',
+			docname: values.name
+		}
+	},
+})
+
+const retryPayment = (appointment) => {
+	retryPaymentResource.submit(
+		{ name: appointment.name },
+		{
+			onSuccess(data) {
+				if (data && data.includes('<form')) {
+					const div = document.createElement('div')
+					div.style.display = 'none'
+					div.innerHTML = data
+					document.body.appendChild(div)
+					const form = div.querySelector('form')
+					if (form) form.submit()
+				} else if (data) {
+					window.location.href = data
+				}
+			},
+			onError(err) {
+				toast.error(err.messages?.[0] || 'Payment initiation failed')
+			}
+		}
+	)
 }
 </script>
 
