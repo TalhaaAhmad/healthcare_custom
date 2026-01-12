@@ -177,6 +177,7 @@ def make_appointment(practitioner, patient, date, slot, relative_details=None, a
 		new_patient.sex = relative_details.get("sex")
 		new_patient.dob = relative_details.get("dob")
 		new_patient.mobile = relative_details.get("mobile_number")
+		new_patient.email = relative_details.get("email")
 		new_patient.customer = customer
 		new_patient.status = "Active"
 		new_patient.insert(ignore_permissions=True)

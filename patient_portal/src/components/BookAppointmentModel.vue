@@ -82,6 +82,7 @@
 										<FormControl v-model="relativeDetails.relation" type="select" :options="['Self', 'Family', 'Other']" label="Relation" size="sm" />
 									</div>
 									<FormControl v-model="relativeDetails.mobile_number" label="Mobile" size="sm" />
+									<FormControl v-model="relativeDetails.email" label="Email" size="sm" />
 								</div>
 							</div>
 						</div>
@@ -255,6 +256,7 @@ const relativeDetails = ref({
 	last_name: '',
 	sex: '',
 	dob: '',
+	email: '',
 	relation: '',
 	mobile_number: ''
 })
@@ -462,8 +464,8 @@ async function bookSlot() {
 	error.value = null;
 	if (isNewPatient.value) {
 		const rd = relativeDetails.value;
-		if (!rd.first_name || !rd.last_name || !rd.sex || !rd.relation || !rd.mobile_number) {
-			error.value = "Please fill in all required patient details (First Name, Last Name, Gender, Relationship, and Mobile Number).";
+		if (!rd.first_name || !rd.last_name || !rd.sex || !rd.relation || !rd.mobile_number || !rd.email) {
+			error.value = "Please fill in all required patient details (First Name, Last Name, Gender, Relationship, Mobile Number, and Email).";
 			return;
 		}
 	}
