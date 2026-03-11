@@ -5,10 +5,10 @@
 		title: 'Book Appointment',
 	}" :disable-outside-click-to-close="true">
 		<template #body-content>
-			<div class="flex flex-col min-h-[75vh] max-h-[85vh] bg-white rounded-2xl overflow-hidden font-sans text-slate-600">
+			<div class="flex flex-col min-h-[60vh] md:min-h-[75vh] max-h-[90vh] md:max-h-[85vh] bg-white rounded-2xl overflow-hidden font-sans text-slate-600">
 				
 				<!-- Slim Utility Header -->
-				<div class="px-6 h-14 border-b border-slate-100 flex items-center justify-between shrink-0">
+				<div class="px-4 md:px-6 h-auto min-h-[56px] border-b border-slate-100 flex flex-wrap items-center justify-between gap-2 py-2 shrink-0">
 					<div class="flex items-center gap-3">
 						<div class="w-1.5 h-1.5 rounded-full bg-indigo-600"></div>
 						<h3 class="text-[10px] font-bold text-slate-900 uppercase tracking-[0.2em]">
@@ -30,7 +30,7 @@
 				<div class="flex-1 flex flex-col overflow-hidden relative">
 					
 					<!-- 1. Compact Specialty/Expert Selection -->
-					<div v-if="!show_calendar && !booked && !success" class="flex-1 overflow-y-auto px-10 py-8 animate-fade-in custom-scrollbar">
+					<div v-if="!show_calendar && !booked && !success" class="flex-1 overflow-y-auto px-4 md:px-10 py-5 md:py-8 animate-fade-in custom-scrollbar">
 						<div class="max-w-4xl mx-auto">
 							<div class="mb-8">
 								<h2 class="text-lg font-bold text-slate-900">{{ currentStep === 1 ? 'Select Specialty' : 'Choose Practitioner' }}</h2>
@@ -52,10 +52,10 @@
 					</div>
 
 					<!-- 2. Integrated "Studio" Booking View -->
-					<div v-if="show_calendar && !booked && !success" class="flex-1 flex divide-x divide-slate-100 overflow-hidden animate-fade-in">
+					<div v-if="show_calendar && !booked && !success" class="flex-1 flex flex-col lg:flex-row divide-y lg:divide-y-0 lg:divide-x divide-slate-100 overflow-y-auto lg:overflow-hidden animate-fade-in custom-scrollbar">
 						
 						<!-- Slim Left Sidebar: Practitioner & Patient -->
-						<div class="w-64 bg-slate-50/50 flex flex-col p-6 shrink-0">
+						<div class="w-full lg:w-64 bg-slate-50/50 flex flex-col p-4 md:p-6 shrink-0">
 							<div class="flex items-center gap-3 mb-8">
 								<img v-if="selectedPractitioner.image" :src="selectedPractitioner.image" class="w-10 h-10 rounded-lg object-cover shadow-sm" />
 								<div v-else class="w-10 h-10 rounded-lg bg-slate-900 flex items-center justify-center text-white text-xs font-bold">{{ selectedPractitioner.practitioner_name.charAt(0) }}</div>
@@ -88,7 +88,7 @@
 						</div>
 
 						<!-- Center: Precise Calendar -->
-						<div class="flex-1 flex flex-col items-center justify-center p-8 bg-white overflow-y-auto custom-scrollbar">
+						<div class="flex-1 flex flex-col items-center justify-center p-4 md:p-8 bg-white">
 							<div class="w-full max-w-sm">
 								<span class="text-[9px] font-bold text-slate-300 uppercase tracking-[0.2em] block mb-8 text-center">Select Date</span>
 								<Calendar v-model:selectedDate="selectedDate" size="sm" />
@@ -96,7 +96,7 @@
 						</div>
 
 						<!-- Right: Compact Slots -->
-						<div class="w-80 flex flex-col p-8 overflow-hidden bg-white">
+						<div class="w-full lg:w-80 flex flex-col p-4 md:p-8 bg-white border-t lg:border-t-0 border-slate-100">
 							<span class="text-[9px] font-bold text-slate-300 uppercase tracking-[0.2em] block mb-6">Available Time Slots</span>
 							
 							<div class="flex-1 overflow-y-auto custom-scrollbar">
@@ -155,7 +155,7 @@
 				</div>
 
 				<!-- Floating Action Footer -->
-				<div v-if="!success" class="px-6 h-16 border-t border-slate-50 flex justify-between items-center bg-white shrink-0">
+				<div v-if="!success" class="px-4 md:px-6 h-16 border-t border-slate-50 flex justify-between items-center bg-white shrink-0">
 					<Button v-if="currentStep > 1" variant="subtle" size="sm" class="!px-6 !text-[10px] font-bold uppercase" @click="goToPrevious()">
 						Back
 					</Button>
@@ -169,9 +169,14 @@
 						:loading="bookingLoading" @click="bookSlot()">
 						Book Slot
 					</Button>
-					<Button v-else-if="booked" variant="solid" size="sm" class="!px-8 !bg-indigo-600 !text-[10px] font-bold uppercase tracking-widest" @click="generatePaymentLink()">
-						Pay Now
-					</Button>
+					<div v-else-if="booked" class="flex items-center gap-3">
+						<Button variant="subtle" size="sm" class="!px-5 !text-[10px] font-bold uppercase tracking-widest text-slate-400" @click="payLater()">
+							Pay Later
+						</Button>
+						<Button variant="solid" size="sm" class="!px-8 !bg-indigo-600 !text-[10px] font-bold uppercase tracking-widest" @click="generatePaymentLink()">
+							Pay Now
+						</Button>
+					</div>
 				</div>
 			</div>
 			<ErrorMessage v-if="error" class="p-4 mx-6 mb-6" :message="error" />
@@ -597,6 +602,18 @@ function reload_appointments() {
 	emit('appointment_booked')
 }
 
+import { useRouter } from 'vue-router'
+const router = useRouter()
+
+function payLater() {
+	// Appointment is already booked. Skip payment — patient pays at the clinic.
+	success.value = true
+	setTimeout(() => {
+		show.value = false;
+		router.push(`/payment/${appointment.value.name}`)
+	}, 1500)
+}
+
 const generatePaymentLink = () => {
 	createResource({
 		url: 'healthcare.healthcare.api.patient_portal.get_payment_link',
@@ -609,7 +626,7 @@ const generatePaymentLink = () => {
 				total_amount: consultationFee.value + registrationFee.value,
 				currency: currency.value,
 				patient: appointment.value?.patient,
-				redirect_to: '/patient_portal',
+				redirect_to: `/patient_portal#/payment/${appointment.value?.name}`,
 			}
 		},
 		onSuccess(data) {

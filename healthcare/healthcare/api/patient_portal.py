@@ -48,7 +48,87 @@ def get_appointments():
 
 	appointment_details = query.run(as_dict=True)
 
+	# Enrich with consultation fee for unpaid appointments
+	appointment_type = frappe.db.get_value("Appointment Type", {}, "name")
+	for appt in appointment_details:
+		if not appt.get("paid_amount"):
+			try:
+				doc = frappe._dict({
+					"department": appt.get("department"),
+					"service_unit": appt.get("service_unit", ""),
+					"doctype": "Patient Appointment",
+					"inpatient_record": "",
+					"practitioner": appt.get("practitioner"),
+					"appointment_type": appointment_type,
+				})
+				details = get_appointment_billing_item_and_rate(doc)
+				appt["consultation_charge"] = details.get("practitioner_charge") or 0
+			except Exception:
+				appt["consultation_charge"] = 0
+		else:
+			appt["consultation_charge"] = appt.get("paid_amount") or 0
+
 	return appointment_details
+
+
+@frappe.whitelist()
+def get_appointment_by_id(appointment_id):
+	"""Get a single appointment by ID for the payment/booking status page."""
+	patients = get_patients_with_relations()
+	if not len(patients):
+		return None
+
+	appointment = frappe.qb.DocType("Patient Appointment")
+	encounter = frappe.qb.DocType("Patient Encounter")
+	practitioner = frappe.qb.DocType("Healthcare Practitioner")
+	patient = frappe.qb.DocType("Patient")
+	company = frappe.qb.DocType("Company")
+
+	query = (
+		frappe.qb.from_(appointment)
+		.left_join(encounter)
+		.on((appointment.name == encounter.appointment) & (encounter.docstatus == 1))
+		.left_join(practitioner)
+		.on(appointment.practitioner == practitioner.name)
+		.left_join(patient)
+		.on(appointment.patient == patient.name)
+		.left_join(company)
+		.on(appointment.company == company.name)
+		.select(appointment.star)
+		.select(encounter.name.as_("encounter"))
+		.select(practitioner.image.as_("practitioner_image"))
+		.select(patient.image.as_("patient_image"))
+		.select(company.default_currency.as_("default_currency"))
+		.where(appointment.name == appointment_id)
+		.where(appointment.patient.isin(patients))
+	)
+
+	result = query.run(as_dict=True)
+	if not result:
+		return None
+		
+	appt = result[0]
+	
+	# Enrich with consultation fee
+	if not appt.get("paid_amount"):
+		try:
+			appointment_type = frappe.db.get_value("Appointment Type", {}, "name")
+			doc = frappe._dict({
+				"department": appt.get("department"),
+				"service_unit": appt.get("service_unit", ""),
+				"doctype": "Patient Appointment",
+				"inpatient_record": "",
+				"practitioner": appt.get("practitioner"),
+				"appointment_type": appointment_type,
+			})
+			details = get_appointment_billing_item_and_rate(doc)
+			appt["consultation_charge"] = details.get("practitioner_charge") or 0
+		except Exception:
+			appt["consultation_charge"] = 0
+	else:
+		appt["consultation_charge"] = appt.get("paid_amount") or 0
+
+	return appt
 
 
 @frappe.whitelist()
@@ -116,9 +196,13 @@ def get_slots(practitioner, date):
 	practitioner_doc = frappe.get_doc("Healthcare Practitioner", practitioner)
 	curr_bookings = frappe.db.get_all(
 		"Patient Appointment",
-		filters={"practitioner": practitioner_doc.name, "appointment_date": date},
+		filters={
+			"practitioner": practitioner_doc.name,
+			"appointment_date": date,
+			"status": ["not in", ["Cancelled"]],
+		},
 		pluck="appointment_time",
-	)	
+	)
 	therapy_bookings = frappe.db.get_all(
 		"Therapy Session",
 		filters={"practitioner": practitioner_doc.name, "start_date": date, "docstatus": ["!=", 2]},

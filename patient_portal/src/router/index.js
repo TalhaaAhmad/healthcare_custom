@@ -22,6 +22,12 @@ const routes = [
         component: PatientRegistration,
         meta: { allowGuest: true, hideLayout: true }
     },
+    {
+        path: '/payment/:id',
+        name: 'PaymentStatus',
+        component: () => import('../views/PaymentStatus.vue'),
+        meta: { requiresAuth: true }
+    },
     // Add a catch-all route if needed
     {
         path: '/:pathMatch(.*)*',

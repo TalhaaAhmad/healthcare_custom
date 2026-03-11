@@ -7,7 +7,7 @@
       class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8"
     >
       <div v-for="doc in items" :key="doc.name"
-        class="group relative bg-white rounded-[40px] border border-slate-100 p-6 transition-all duration-500 hover:shadow-[0_30px_80px_-15px_rgba(0,0,0,0.1)] hover:-translate-y-2 cursor-pointer flex flex-col"
+        class="group relative bg-white rounded-2xl md:rounded-[40px] border border-slate-100 p-5 md:p-6 transition-all duration-500 hover:shadow-[0_30px_80px_-15px_rgba(0,0,0,0.1)] hover:-translate-y-2 cursor-pointer flex flex-col"
         @click="$emit('book', doc)"
       >
         <!-- Bio Image Container with Decorative Ring -->
@@ -48,7 +48,7 @@
         </div>
 
         <!-- Action Button (Appear on Hover) -->
-        <div class="mt-8 flex items-center justify-between opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+        <div class="mt-6 md:mt-8 flex items-center justify-between opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity duration-300">
            <span class="text-[10px] font-black text-brand-orange uppercase tracking-widest">Book Session</span>
            <div class="w-8 h-8 rounded-full bg-brand-orange flex items-center justify-center text-white">
              <ArrowRightIcon class="w-4 h-4" />

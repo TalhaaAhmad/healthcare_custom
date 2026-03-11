@@ -1,23 +1,23 @@
 <template>
   <div>
     <!-- Hero Section -->
-    <section class="relative py-20 px-6 overflow-hidden w-full">
+    <section class="relative py-10 md:py-20 px-4 md:px-6 overflow-hidden w-full">
       <div class="absolute inset-0 bg-gradient-to-b from-slate-100/50 to-transparent -z-10"></div>
       <div class="absolute top-0 right-0 w-[500px] h-[500px] bg-brand-orange/5 rounded-full blur-3xl -mr-64 -mt-64 text-transparent">.</div>
       <div class="absolute bottom-0 left-0 w-[400px] h-[400px] bg-navy/5 rounded-full blur-3xl -ml-48 -mb-48 text-transparent">.</div>
       
       <div class="max-w-5xl mx-auto text-center animate-fade-up">
-        <div class="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-brand-orange/10 text-brand-orange text-xs font-black uppercase tracking-widest mb-6">
+        <div class="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-brand-orange/10 text-brand-orange text-xs font-black uppercase tracking-widest mb-5 md:mb-6">
           <span class="relative flex h-2 w-2">
             <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-brand-orange opacity-75"></span>
             <span class="relative inline-flex rounded-full h-2 w-2 bg-brand-orange"></span>
           </span>
           Premium Healthcare 
         </div>
-        <h2 class="text-5xl md:text-7xl font-black text-navy mb-6 tracking-tight leading-[1.1]">
+        <h2 class="text-4xl sm:text-5xl md:text-7xl font-black text-navy mb-4 md:mb-6 tracking-tight leading-[1.1]">
           Find Your Best <span class="text-brand-orange drop-shadow-sm">Specialist</span>
         </h2>
-        <p class="text-xl text-slate-500 mb-12 max-w-2xl mx-auto font-medium">
+        <p class="text-base md:text-xl text-slate-500 mb-8 md:mb-12 max-w-2xl mx-auto font-medium px-2">
           Book appointments with world-class practitioners and manage your healthcare journey in one place.
         </p>
         
@@ -25,18 +25,18 @@
         <div class="p-1.5 bg-white rounded-2xl shadow-xl shadow-slate-200/50 flex flex-col md:flex-row gap-2 max-w-2xl mx-auto border border-slate-100">
           <!-- Search Input -->
           <div class="flex-1 relative">
-            <SearchIcon class="absolute left-6 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+            <SearchIcon class="absolute left-4 md:left-6 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
             <input
               v-model="searchQuery"
               type="text"
               placeholder="Search by doctor name or expertise..."
-              class="w-full pl-14 pr-6 py-4 bg-transparent text-sm font-bold text-slate-900 placeholder:text-slate-400 outline-none"
+              class="w-full pl-11 md:pl-14 pr-4 md:pr-6 py-3 md:py-4 bg-transparent text-sm font-bold text-slate-900 placeholder:text-slate-400 outline-none"
             />
           </div>
           
-          <button class="bg-slate-900 text-white rounded-xl py-3 px-8 flex items-center justify-center gap-2 hover:bg-slate-800 transition-all font-bold text-xs uppercase tracking-widest group shadow-lg shadow-slate-900/10">
+          <button class="bg-slate-900 text-white rounded-xl py-3 px-6 md:px-8 flex items-center justify-center gap-2 hover:bg-slate-800 transition-all font-bold text-xs uppercase tracking-widest group shadow-lg shadow-slate-900/10">
             <SearchIcon class="w-4 h-4" />
-            <span class="hidden md:inline">Search</span>
+            <span class="sm:inline">Search</span>
           </button>
         </div>
       </div>
@@ -45,32 +45,29 @@
 
 
     <!-- Therapy Plans Section -->
-    <section class="w-full px-6 mb-20 animate-fade-up stagger-1" v-if="therapyTemplates.length > 0">
+    <section class="w-full px-4 md:px-6 mb-10 md:mb-20 animate-fade-up stagger-1" v-if="therapyTemplates.length > 0">
       <div class="max-w-7xl mx-auto">
-        <div class="mb-8 flex items-end justify-between">
+        <div class="mb-6 md:mb-8 flex items-end justify-between">
           <div>
-            <h3 class="text-2xl font-black text-navy tracking-tight">Therapy Plans</h3>
-            <p class="text-slate-500 font-medium">Comprehensive care packages</p>
+            <h3 class="text-xl md:text-2xl font-black text-navy tracking-tight">Therapy Plans</h3>
+            <p class="text-slate-500 font-medium text-sm md:text-base">Comprehensive care packages</p>
           </div>
-          <!-- <Button variant="subtle" size="sm" @click="dashboardTab = 'Therapy'">View All</Button> -->
         </div>
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div v-for="plan in therapyTemplates" :key="plan.name"
                 @click="openBookingModel(plan)"
-                class="group relative overflow-hidden bg-white p-6 rounded-[24px] border border-slate-100 hover:border-slate-200 transition-all cursor-pointer hover:shadow-xl hover:shadow-slate-200/50"
+                class="group relative overflow-hidden bg-white p-5 md:p-6 rounded-[20px] md:rounded-[24px] border border-slate-100 hover:border-slate-200 transition-all cursor-pointer hover:shadow-xl hover:shadow-slate-200/50"
             >
                 <div class="absolute top-0 right-0 p-6 opacity-10 group-hover:opacity-20 transition-opacity">
-                    <!-- <ActivityIcon class="w-16 h-16 text-brand-orange" /> -->
                 </div>
                 <div class="relative z-10">
-                    <h3 class="font-bold text-slate-900 text-lg mb-1">{{ plan.plan_name }}</h3>
+                    <h3 class="font-bold text-slate-900 text-base md:text-lg mb-1">{{ plan.plan_name }}</h3>
                     <div class="flex items-center gap-2 text-xs font-bold text-slate-500 uppercase tracking-wider mb-4">
                         <div class="w-1.5 h-1.5 rounded-full bg-brand-orange"></div>
                         {{ plan.total_sessions }} Sessions
                     </div>
                     <div class="flex items-center gap-2 text-sm font-bold text-brand-orange group-hover:gap-3 transition-all">
                         Book Now 
-                        <!-- <ArrowRightIcon class="w-4 h-4" /> -->
                     </div>
                 </div>
             </div>
@@ -81,15 +78,15 @@
 
 
     <!-- Practitioners Section -->
-    <section class="w-full px-6 mb-24 animate-fade-up stagger-2" v-if="filteredPractitioners.length > 0">
-      <div class="max-w-7xl mx-auto flex items-center justify-between mb-8">
+    <section class="w-full px-4 md:px-6 mb-12 md:mb-24 animate-fade-up stagger-2" v-if="filteredPractitioners.length > 0">
+      <div class="max-w-7xl mx-auto flex flex-wrap items-start md:items-center justify-between gap-3 mb-6 md:mb-8">
         <div>
-          <h3 class="text-3xl font-black text-navy tracking-tight mb-2">
+          <h3 class="text-2xl md:text-3xl font-black text-navy tracking-tight mb-1 md:mb-2">
             {{ selectedDepartment ? `Best in ${selectedDepartment}` : 'Top Rated Specialists' }}
           </h3>
           <div class="flex items-center gap-2">
             <span class="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse"></span>
-            <p class="text-[15px] text-slate-500 font-semibold">{{ filteredPractitioners.length }} active practitioners available</p>
+            <p class="text-sm md:text-[15px] text-slate-500 font-semibold">{{ filteredPractitioners.length }} active practitioners available</p>
           </div>
         </div>
       </div>

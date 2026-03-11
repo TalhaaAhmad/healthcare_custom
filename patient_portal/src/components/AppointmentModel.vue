@@ -100,9 +100,9 @@
 						<p class="text-slate-500 text-xs mt-1 font-bold uppercase tracking-widest">Ref: # {{ selectedAppointment.name }}</p>
 					</div>
 					<Badge
-						variant="solid"
+						variant="subtle"
 						size="lg"
-						class="rounded-xl px-4 py-1.5 text-xs font-black uppercase tracking-widest"
+						class="rounded-xl px-4 py-1.5 text-xs font-black uppercase tracking-widest text-slate-900"
 						:theme="getStatusColor(selectedAppointment.status)">
 						{{ selectedAppointment.status }}
 					</Badge>
@@ -158,9 +158,17 @@
 						<div class="flex items-center justify-between bg-white p-5 rounded-2xl border border-slate-100">
 							<div class="flex items-center gap-3">
 								<div class="w-8 h-8 rounded-lg bg-slate-50 flex items-center justify-center text-slate-400 font-bold">$</div>
-								<p class="text-xl font-black text-slate-900">{{ formatCurrency(selectedAppointment.paid_amount, selectedAppointment.default_currency) }}</p>
+								<div>
+									<p class="text-xl font-black text-slate-900">
+										<template v-if="selectedAppointment.consultation_charge > 0">
+											{{ formatCurrency(selectedAppointment.consultation_charge, selectedAppointment.default_currency) }}
+										</template>
+										<template v-else>—</template>
+									</p>
+									<p v-if="!selectedAppointment.invoiced && selectedAppointment.consultation_charge > 0" class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">Due at clinic</p>
+								</div>
 							</div>
-							<Badge :variant="'subtle'" :theme="selectedAppointment.invoiced == 1 ? 'green' : 'red'">
+							<Badge :variant="'subtle'" :theme="selectedAppointment.invoiced == 1 ? 'green' : 'orange'">
 								{{ selectedAppointment.invoiced ? 'Paid' : 'Unpaid' }}
 							</Badge>
 						</div>
@@ -295,11 +303,11 @@ const getStatusColor = (status) => {
 			return "green"
 		case "Open":
 		case "Scheduled":
-			return "orange"
+			return "blue"
 		case "Cancelled":
 			return "red"
 		case "Checked In":
-			return "blue"
+			return "purple"
 		case "Checked Out":
 			return "gray"
 		default:
@@ -313,11 +321,11 @@ const getStatusClasses = (status) => {
 			return "bg-green-50 text-green-600 border-green-100"
 		case "Open":
 		case "Scheduled":
-			return "bg-orange-50 text-orange-600 border-orange-100"
+			return "bg-blue-50 text-blue-600 border-blue-100"
 		case "Cancelled":
 			return "bg-red-50 text-red-600 border-red-100"
 		case "Checked In":
-			return "bg-blue-50 text-blue-600 border-blue-100"
+			return "bg-purple-50 text-purple-600 border-purple-100"
 		default:
 			return "bg-slate-50 text-slate-500 border-slate-100"
 	}

@@ -425,6 +425,9 @@ const isNextDisabled = computed(() => {
 	return true
 })
 
+import { useRouter } from 'vue-router'
+const router = useRouter()
+
 const bookSession = async () => {
 	bookingLoading.value = true
 	try {
@@ -451,8 +454,11 @@ const bookSession = async () => {
 			currentStep.value = 4
 		} else {
 			success.value = true
-			toast.success('Therapy session booked successfully!')
-			emit('booked')
+			setTimeout(() => {
+				show.value = false;
+				router.push(`/payment/${session.value.name}`)
+				emit('booked')
+			}, 1500)
 		}
 	} catch (error) {
 		toast.error(error.messages?.[0] || 'Failed to book session')
@@ -472,7 +478,7 @@ const paymentLink = createResource({
 			total_amount: sessionFee.value,
 			currency: currency.value,
 			patient: session.value?.patient,
-			redirect_to: '/patient-portal',
+			redirect_to: `/patient_portal#/payment/${session.value?.name}`,
 		}
 	},
 })
