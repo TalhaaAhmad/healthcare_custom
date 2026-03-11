@@ -174,6 +174,62 @@
 						</div>
 					</div>
 
+					<!-- Encounter Details -->
+					<div v-if="selectedAppointment.encounter && encounterDetails" class="space-y-6 animate-fade-in mt-6">
+						<!-- Symptoms & Diagnosis -->
+						<div v-if="encounterDetails.symptoms?.length || encounterDetails.diagnosis?.length" class="bg-white p-6 rounded-[24px] border border-slate-100 shadow-sm">
+							<h3 class="text-sm font-black text-slate-900 uppercase tracking-widest mb-4">Impression</h3>
+							
+							<div class="space-y-4">
+								<div v-if="encounterDetails.symptoms?.length">
+									<p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">Symptoms</p>
+									<div class="flex flex-wrap gap-2">
+										<Badge v-for="sym in encounterDetails.symptoms" :key="sym.name" variant="subtle" class="!bg-slate-50 !text-slate-700 !border-slate-200">
+											{{ sym.complaint }}
+										</Badge>
+									</div>
+								</div>
+								
+								<div v-if="encounterDetails.diagnosis?.length">
+									<p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">Diagnosis</p>
+									<div class="flex flex-wrap gap-2">
+										<Badge v-for="diag in encounterDetails.diagnosis" :key="diag.name" variant="subtle" theme="blue">
+											{{ diag.diagnosis }}
+										</Badge>
+									</div>
+								</div>
+							</div>
+						</div>
+
+						<!-- Medications -->
+						<div v-if="encounterDetails.drug_prescription?.length" class="bg-white p-6 rounded-[24px] border border-slate-100 shadow-sm">
+							<h3 class="text-sm font-black text-slate-900 uppercase tracking-widest mb-4">Prescribed Medications</h3>
+							<div class="space-y-3">
+								<div v-for="drug in encounterDetails.drug_prescription" :key="drug.name" class="p-4 bg-slate-50 rounded-2xl flex flex-col md:flex-row md:items-start justify-between gap-2">
+									<div>
+										<p class="font-bold text-slate-900">{{ drug.drug_name }} <span v-if="drug.dosage" class="text-slate-400 text-sm font-medium ml-1">({{ drug.dosage }})</span></p>
+										<p v-if="drug.dosage_form" class="text-xs text-slate-500 mt-1">{{ drug.dosage_form }}</p>
+									</div>
+									<div class="md:text-right flex flex-col md:items-end gap-1">
+										<Badge v-if="drug.period" variant="solid" theme="gray">{{ drug.period }}</Badge>
+										<p v-if="drug.comment" class="text-[10px] text-slate-500 font-medium max-w-[200px]">{{ drug.comment }}</p>
+									</div>
+								</div>
+							</div>
+						</div>
+
+						<!-- Investigations -->
+						<div v-if="encounterDetails.lab_test_prescription?.length" class="bg-white p-6 rounded-[24px] border border-slate-100 shadow-sm">
+							<h3 class="text-sm font-black text-slate-900 uppercase tracking-widest mb-4">Investigations</h3>
+							<div class="flex flex-wrap gap-2">
+								<Badge v-for="test in encounterDetails.lab_test_prescription" :key="test.name" variant="subtle" theme="purple" class="px-3 py-1.5 border border-purple-100">
+									{{ test.lab_test_name }}
+								</Badge>
+							</div>
+						</div>
+					</div>
+
+
 					<!-- Footer Actions (Styled within Dialog Content) -->
 					<div v-if="['Scheduled', 'Open', 'Confirmed'].includes(selectedAppointment.status)" class="flex flex-col sm:flex-row items-center justify-end gap-3 pt-4">
 						<button class="text-slate-400 hover:text-red-500 px-6 py-2 font-bold text-sm transition-colors" @click="confirmCancel(selectedAppointment)">
@@ -254,6 +310,20 @@ const appointmentToCancel = ref(null);
 const dialog_title = ref("");
 const dialog_message = ref("");
 
+const encounterDetails = ref(null);
+
+const encounterDetailsResource = createResource({
+	url: "healthcare.healthcare.api.patient_portal.get_encounter_details",
+	makeParams(values) {
+		return {
+			encounter_id: values.encounter_id
+		};
+	},
+	onSuccess(data) {
+		encounterDetails.value = data;
+	}
+});
+
 const get_appointments = createResource({
 	url: "/api/method/healthcare.healthcare.api.patient_portal.get_appointments",
 	method: "GET",
@@ -276,6 +346,10 @@ onMounted(() => {
 function appointmentDetails(appointment) {
 	selectedAppointment.value = appointment;
 	appointment_details.value = true;
+	encounterDetails.value = null;
+	if (appointment.encounter) {
+		encounterDetailsResource.submit({ encounter_id: appointment.encounter });
+	}
 }
 
 function formatDate(dateStr) {

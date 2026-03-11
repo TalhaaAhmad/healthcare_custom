@@ -132,6 +132,29 @@ def get_appointment_by_id(appointment_id):
 
 
 @frappe.whitelist()
+def get_encounter_details(encounter_id):
+	"""Get encounter details including symptoms, diagnosis, and prescriptions."""
+	patients = get_patients_with_relations()
+	if not len(patients):
+		return None
+
+	encounter = frappe.get_doc("Patient Encounter", encounter_id)
+	
+	# Verify patient access
+	if encounter.patient not in patients:
+		frappe.throw(_("Not permitted"), frappe.PermissionError)
+
+	details = {
+		"symptoms": encounter.get("symptoms"),
+		"diagnosis": encounter.get("diagnosis"),
+		"drug_prescription": encounter.get("drug_prescription"),
+		"lab_test_prescription": encounter.get("lab_test_prescription")
+	}
+
+	return details
+
+
+@frappe.whitelist()
 def get_logged_in_patient():
 	patient = frappe.db.exists("Patient", {"status": "Active", "user_id": frappe.session.user})
 
