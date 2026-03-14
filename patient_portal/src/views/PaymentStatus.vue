@@ -264,8 +264,8 @@ const paymentState = computed(() => {
   const ps = appointment.value.payment_status
   if (ps === 'Captured') return 'success'
   if (ps === 'Failed') return 'failed'
-  // If invoiced via other means (Razorpay etc.) 
-  if (appointment.value.invoiced === 1 || appointment.value.paid_amount > 0) return 'success'
+  // Only trust the invoiced flag, not paid_amount (which may reflect the fee, not actual payment)
+  if (appointment.value.invoiced === 1) return 'success'
   return 'pending'
 })
 

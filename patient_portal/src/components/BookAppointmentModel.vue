@@ -616,7 +616,7 @@ function payLater() {
 	success.value = true
 	setTimeout(() => {
 		show.value = false;
-		router.push(`/payment/${appointment.value.name}`)
+		router.push('/dashboard')
 	}, 1500)
 }
 
