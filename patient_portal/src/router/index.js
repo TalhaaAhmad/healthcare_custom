@@ -23,6 +23,18 @@ const routes = [
         meta: { allowGuest: true, hideLayout: true }
     },
     {
+        path: '/history',
+        name: 'MedicalHistory',
+        component: () => import('../views/MedicalHistory.vue'),
+        meta: { requiresAuth: true }
+    },
+    {
+        path: '/history/print',
+        name: 'PrintMedicalHistory',
+        component: () => import('../views/PrintMedicalHistory.vue'),
+        meta: { requiresAuth: true, hideLayout: true }
+    },
+    {
         path: '/payment/:id',
         name: 'PaymentStatus',
         component: () => import('../views/PaymentStatus.vue'),
