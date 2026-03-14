@@ -74,15 +74,15 @@
 								<!-- Minimalist Relative Details -->
 								<div v-if="isNewPatient" class="space-y-3 pt-4 border-t border-slate-200 animate-slide-in">
 									<div class="grid grid-cols-2 gap-2">
-										<FormControl v-model="relativeDetails.first_name" label="First Name" size="sm" />
+										<FormControl v-model="relativeDetails.first_name" label="First Name *" size="sm" />
 										<FormControl v-model="relativeDetails.last_name" label="Last Name" size="sm" />
 									</div>
 									<div class="grid grid-cols-2 gap-2">
 										<FormControl v-model="relativeDetails.sex" type="select" :options="['Male', 'Female', 'Other']" label="Gender" size="sm" />
 										<FormControl v-model="relativeDetails.relation" type="select" :options="['Self', 'Family', 'Other']" label="Relation" size="sm" />
 									</div>
-									<FormControl v-model="relativeDetails.mobile_number" label="Mobile" size="sm" />
-									<FormControl v-model="relativeDetails.email" label="Email" size="sm" />
+									<FormControl v-model="relativeDetails.mobile_number" label="Mobile *" size="sm" />
+									<FormControl v-model="relativeDetails.email" label="Email *" size="sm" />
 								</div>
 							</div>
 						</div>
@@ -469,13 +469,13 @@ async function bookSlot() {
 	error.value = null;
 	if (isNewPatient.value) {
 		const rd = relativeDetails.value;
-		if (!rd.first_name || !rd.last_name || !rd.sex || !rd.relation || !rd.mobile_number || !rd.email) {
-			error.value = "Please fill in all required patient details (First Name, Last Name, Gender, Relationship, Mobile Number, and Email).";
+		if (!rd.first_name || !rd.mobile_number || !rd.email) {
+			toast.error("Please fill in all mandatory patient details (First Name, Mobile Number, and Email).");
 			return;
 		}
 	}
 	if (!selectedDate.value || !selectedSlot.value) {
-		error.value = "Please select a date and time slot.";
+		toast.error("Please select a date and time slot.");
 		return;
 	}
 
@@ -513,7 +513,12 @@ async function bookSlot() {
 			if (data._server_messages) {
 				try {
 					const messages = JSON.parse(data._server_messages);
-					errorMsg = messages[0]?.replace(/<[^>]*>/g, '') || errorMsg;
+					let msg = messages[0];
+					if (typeof msg === 'string' && msg.startsWith('{')) {
+						const parsedMsg = JSON.parse(msg);
+						msg = parsedMsg.message || msg;
+					}
+					errorMsg = msg?.replace(/<[^>]*>/g, '') || errorMsg;
 				} catch (e) {
 					errorMsg = data._server_messages;
 				}
@@ -522,7 +527,8 @@ async function bookSlot() {
 			} else if (data.message) {
 				errorMsg = data.message;
 			}
-			error.value = errorMsg;
+			const formattedError = typeof errorMsg === 'string' ? errorMsg.replace(/<[^>]*>/g, '') : errorMsg;
+			toast.error(String(formattedError));
 			return;
 		}
 		
@@ -536,7 +542,7 @@ async function bookSlot() {
 		}
 	} catch (e) {
 		console.error('Booking error:', e);
-		error.value = 'An unexpected error occurred. Please try again.';
+		toast.error('An unexpected error occurred. Please try again.');
 	} finally {
 		bookingLoading.value = false;
 	}

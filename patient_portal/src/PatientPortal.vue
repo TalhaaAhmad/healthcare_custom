@@ -1,153 +1,155 @@
 <template>
-	<!-- Standardized Slate-50 Background for a quiet feel -->
-	<div class="h-screen flex flex-col bg-slate-50 font-sans antialiased text-slate-600">
-		
-		<!-- Compact Studio Header - Hidden on registration page -->
-		<header v-if="!hideLayout" class="sticky top-0 w-full z-[100] bg-white/70 backdrop-blur-md border-b border-slate-200/60 px-4 md:px-6 lg:px-10 py-2.5">
-			<div class="max-w-[1400px] mx-auto flex items-center justify-between">
-				
-				<!-- Brand Identity -->
-				<div class="flex items-center gap-3 group cursor-pointer" @click="router.push('/')">
-					<img 
-						:src="clinicLogo" 
-						alt="Clinic Logo" 
-						class="h-9 w-auto object-contain transition-transform group-hover:scale-105"
-					/>
-				</div>
-
-				<!-- Slim Capsule Nav (Desktop only) -->
-				<nav class="hidden lg:flex items-center gap-1 p-0.5 bg-slate-100/80 rounded-xl border border-slate-200/50">
-					<router-link 
-						v-for="nav in [{label: 'Home', path: '/'}, {label: 'Dashboard', path: '/dashboard'}]" 
-						:key="nav.path"
-						:to="nav.path" 
-						class="px-5 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-widest transition-all"
-						:class="route.path === nav.path 
-							? 'bg-white text-slate-900 shadow-sm' 
-							: 'text-slate-400 hover:text-slate-600'"
-					>
-						{{ nav.label }}
-					</router-link>
-				</nav>
-
-				<!-- User & Actions -->
-				<div class="flex items-center gap-2 md:gap-4">
+	<FrappeUIProvider>
+		<!-- Standardized Slate-50 Background for a quiet feel -->
+		<div class="h-screen flex flex-col bg-slate-50 font-sans antialiased text-slate-600">
+			
+			<!-- Compact Studio Header - Hidden on registration page -->
+			<header v-if="!hideLayout" class="sticky top-0 w-full z-[100] bg-white/70 backdrop-blur-md border-b border-slate-200/60 px-4 md:px-6 lg:px-10 py-2.5">
+				<div class="max-w-[1400px] mx-auto flex items-center justify-between">
 					
-					<!-- Subtle Registration Link (desktop) -->
-					<button
-						v-if="!isGuest && !patient"
-						@click="goToRegistration"
-						class="hidden md:block text-[10px] font-bold text-slate-400 uppercase tracking-widest hover:text-brand-orange transition-colors"
-					>
-						Register Patient
-					</button>
-
-					<!-- Compact User Dropdown -->
-					<div v-if="!isGuest" class="flex items-center">
-						<Dropdown :options="userMenuOptions">
-							<template #default="{ open }">
-								<button class="flex items-center gap-1.5 group p-1 pr-2 rounded-xl hover:bg-slate-100/80 transition-all">
-									<Avatar
-										:image="userInfo.image"
-										:label="userInfo.full_name || 'User'"
-										size="md"
-										class="rounded-xl ring-2 ring-slate-100 group-hover:ring-brand-orange/30 transition-all shadow-sm"
-									/>
-									<ChevronDownIcon class="w-3.5 h-3.5 text-slate-400 group-hover:text-slate-600 transition-colors hidden sm:block" />
-								</button>
-							</template>
-						</Dropdown>
+					<!-- Brand Identity -->
+					<div class="flex items-center gap-3 group cursor-pointer" @click="router.push('/')">
+						<img 
+							:src="clinicLogo" 
+							alt="Clinic Logo" 
+							class="h-9 w-auto object-contain transition-transform group-hover:scale-105"
+						/>
 					</div>
 
-					<!-- Compact Login -->
-					<button
-						v-if="isGuest"
-						@click="goToLogin"
-						class="px-4 md:px-6 py-2 rounded-lg bg-slate-900 text-white text-[10px] font-bold uppercase tracking-widest hover:bg-slate-800 transition-all shadow-sm"
-					>
-						Login
-					</button>
+					<!-- Slim Capsule Nav (Desktop only) -->
+					<nav class="hidden lg:flex items-center gap-1 p-0.5 bg-slate-100/80 rounded-xl border border-slate-200/50">
+						<router-link 
+							v-for="nav in [{label: 'Home', path: '/'}, {label: 'Dashboard', path: '/dashboard'}, {label: 'History', path: '/history'}]" 
+							:key="nav.path"
+							:to="nav.path" 
+							class="px-5 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-widest transition-all"
+							:class="route.path === nav.path 
+								? 'bg-white text-slate-900 shadow-sm' 
+								: 'text-slate-400 hover:text-slate-600'"
+						>
+							{{ nav.label }}
+						</router-link>
+					</nav>
 
-					<!-- Hamburger (Mobile/Tablet only) -->
-					<button
-						v-if="!isGuest"
-						@click="showMobileMenu = !showMobileMenu"
-						class="lg:hidden flex items-center justify-center w-9 h-9 rounded-xl bg-slate-100 text-slate-500 hover:bg-slate-200 transition-all"
-					>
-						<svg v-if="!showMobileMenu" xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-							<path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16M4 18h16" />
-						</svg>
-						<svg v-else xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-							<path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
-						</svg>
-					</button>
+					<!-- User & Actions -->
+					<div class="flex items-center gap-2 md:gap-4">
+						
+						<!-- Subtle Registration Link (desktop) -->
+						<button
+							v-if="!isGuest && !patient"
+							@click="goToRegistration"
+							class="hidden md:block text-[10px] font-bold text-slate-400 uppercase tracking-widest hover:text-brand-orange transition-colors"
+						>
+							Register Patient
+						</button>
+
+						<!-- Compact User Dropdown -->
+						<div v-if="!isGuest" class="flex items-center">
+							<Dropdown :options="userMenuOptions">
+								<template #default="{ open }">
+									<button class="flex items-center gap-1.5 group p-1 pr-2 rounded-xl hover:bg-slate-100/80 transition-all">
+										<Avatar
+											:image="userInfo.image"
+											:label="userInfo.full_name || 'User'"
+											size="md"
+											class="rounded-xl ring-2 ring-slate-100 group-hover:ring-brand-orange/30 transition-all shadow-sm"
+										/>
+										<ChevronDownIcon class="w-3.5 h-3.5 text-slate-400 group-hover:text-slate-600 transition-colors hidden sm:block" />
+									</button>
+								</template>
+							</Dropdown>
+						</div>
+
+						<!-- Compact Login -->
+						<button
+							v-if="isGuest"
+							@click="goToLogin"
+							class="px-4 md:px-6 py-2 rounded-lg bg-slate-900 text-white text-[10px] font-bold uppercase tracking-widest hover:bg-slate-800 transition-all shadow-sm"
+						>
+							Login
+						</button>
+
+						<!-- Hamburger (Mobile/Tablet only) -->
+						<button
+							v-if="!isGuest"
+							@click="showMobileMenu = !showMobileMenu"
+							class="lg:hidden flex items-center justify-center w-9 h-9 rounded-xl bg-slate-100 text-slate-500 hover:bg-slate-200 transition-all"
+						>
+							<svg v-if="!showMobileMenu" xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+								<path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16M4 18h16" />
+							</svg>
+							<svg v-else xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+								<path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+							</svg>
+						</button>
+					</div>
 				</div>
-			</div>
 
-			<!-- Mobile Nav Dropdown -->
-			<transition name="slide-down">
-				<div v-if="showMobileMenu && !isGuest" class="lg:hidden border-t border-slate-100 mt-2.5 py-3 space-y-1">
-					<router-link 
-						v-for="nav in [{label: 'Home', path: '/'}, {label: 'Dashboard', path: '/dashboard'}]"
-						:key="nav.path"
-						:to="nav.path"
-						@click="showMobileMenu = false"
-						class="flex items-center px-3 py-2.5 rounded-xl text-sm font-bold uppercase tracking-widest transition-all"
-						:class="route.path === nav.path 
-							? 'bg-slate-900 text-white' 
-							: 'text-slate-500 hover:bg-slate-100'"
-					>
-						{{ nav.label }}
-					</router-link>
-					<button
-						v-if="!patient"
-						@click="goToRegistration(); showMobileMenu = false"
-						class="w-full text-left flex items-center px-3 py-2.5 rounded-xl text-sm font-bold uppercase tracking-widest text-slate-500 hover:bg-slate-100 transition-all"
-					>
-						Register Patient
-					</button>
+				<!-- Mobile Nav Dropdown -->
+				<transition name="slide-down">
+					<div v-if="showMobileMenu && !isGuest" class="lg:hidden border-t border-slate-100 mt-2.5 py-3 space-y-1">
+						<router-link 
+							v-for="nav in [{label: 'Home', path: '/'}, {label: 'Dashboard', path: '/dashboard'}, {label: 'History', path: '/history'}]"
+							:key="nav.path"
+							:to="nav.path"
+							@click="showMobileMenu = false"
+							class="flex items-center px-3 py-2.5 rounded-xl text-sm font-bold uppercase tracking-widest transition-all"
+							:class="route.path === nav.path 
+								? 'bg-slate-900 text-white' 
+								: 'text-slate-500 hover:bg-slate-100'"
+						>
+							{{ nav.label }}
+						</router-link>
+						<button
+							v-if="!patient"
+							@click="goToRegistration(); showMobileMenu = false"
+							class="w-full text-left flex items-center px-3 py-2.5 rounded-xl text-sm font-bold uppercase tracking-widest text-slate-500 hover:bg-slate-100 transition-all"
+						>
+							Register Patient
+						</button>
+					</div>
+				</transition>
+			</header>
+
+			<!-- Main content handles the page-level scrolling -->
+			<main class="flex-1 overflow-y-auto custom-scrollbar">
+				<div :class="hideLayout ? 'h-full' : 'max-w-[1400px] mx-auto w-full min-h-full'">
+					<router-view v-slot="{ Component }">
+						<transition 
+							name="page-fade" 
+							mode="out-in" 
+							appear
+						>
+							<component :is="Component" />
+						</transition>
+					</router-view>
 				</div>
-			</transition>
-		</header>
+			</main>
 
-		<!-- Main content handles the page-level scrolling -->
-		<main class="flex-1 overflow-y-auto custom-scrollbar">
-			<div :class="hideLayout ? 'h-full' : 'max-w-[1400px] mx-auto w-full min-h-full'">
-				<router-view v-slot="{ Component }">
-					<transition 
-						name="page-fade" 
-						mode="out-in" 
-						appear
-					>
-						<component :is="Component" />
-					</transition>
-				</router-view>
-			</div>
-		</main>
+			<!-- Minimalist Utility Footer - Hidden on registration page -->
+			<footer v-if="!hideLayout" class="px-4 md:px-10 py-4 bg-white border-t border-slate-100 flex flex-col sm:flex-row items-center justify-between gap-2">
+				<div class="flex items-center gap-1.5">
+					<div class="w-1 h-1 rounded-full bg-slate-300"></div>
+					<p class="text-[9px] font-bold text-slate-300 uppercase tracking-[0.2em]">© 2026 Patient Portal</p>
+				</div>
+				<div class="flex gap-5">
+					<a href="#" class="text-[9px] font-bold text-slate-300 uppercase tracking-widest hover:text-slate-600">Privacy</a>
+					<a href="#" class="text-[9px] font-bold text-slate-300 uppercase tracking-widest hover:text-slate-600">Support</a>
+				</div>
+			</footer>
 
-		<!-- Minimalist Utility Footer - Hidden on registration page -->
-		<footer v-if="!hideLayout" class="px-4 md:px-10 py-4 bg-white border-t border-slate-100 flex flex-col sm:flex-row items-center justify-between gap-2">
-			<div class="flex items-center gap-1.5">
-				<div class="w-1 h-1 rounded-full bg-slate-300"></div>
-				<p class="text-[9px] font-bold text-slate-300 uppercase tracking-[0.2em]">© 2026 Patient Portal</p>
-			</div>
-			<div class="flex gap-5">
-				<a href="#" class="text-[9px] font-bold text-slate-300 uppercase tracking-widest hover:text-slate-600">Privacy</a>
-				<a href="#" class="text-[9px] font-bold text-slate-300 uppercase tracking-widest hover:text-slate-600">Support</a>
-			</div>
-		</footer>
-	</div>
-
-	<!-- Alert Dialog -->
-	<Teleport to="body">
-		<Dialog :options="{
-			title: dialog_title,
-			message: dialog_message,
-			size: 'sm',
-			icon: { name: 'alert-circle', appearance: 'warning' },
-			actions: [{ label: 'OK', variant: 'solid', theme: 'gray' }]
-		}" v-model="alert_dialog" />
-	</Teleport>
+			<!-- Alert Dialog -->
+			<Teleport to="body">
+				<Dialog :options="{
+					title: dialog_title,
+					message: dialog_message,
+					size: 'sm',
+					icon: { name: 'alert-circle', appearance: 'warning' },
+					actions: [{ label: 'OK', variant: 'solid', theme: 'gray' }]
+				}" v-model="alert_dialog" />
+			</Teleport>
+		</div>
+	</FrappeUIProvider>
 </template>
 
 <script setup>
@@ -158,7 +160,8 @@ import {
 	createResource,
 	Dialog,
 	Avatar,
-	Dropdown
+	Dropdown,
+	FrappeUIProvider
 } from 'frappe-ui'
 
 const clinicLogo = '/assets/healthcare/images/zan-center-for-women-logo.png'
@@ -195,6 +198,7 @@ const handleLogout = async () => {
 const userMenuOptions = [
 	{ label: 'Portal Home', onClick: () => router.push('/'), icon: 'home' },
 	{ label: 'Appointments', onClick: () => router.push('/dashboard'), icon: 'calendar' },
+	{ label: 'Medical History', onClick: () => router.push('/history'), icon: 'folder' },
 	{ label: 'Logout', onClick: handleLogout, icon: 'log-out' }
 ]
 

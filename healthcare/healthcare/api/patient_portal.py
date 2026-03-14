@@ -128,6 +128,31 @@ def get_appointment_by_id(appointment_id):
 	else:
 		appt["consultation_charge"] = appt.get("paid_amount") or 0
 
+	# Enrich with payment record status (Captured / Failed / Pending)
+	payment_records = frappe.get_all(
+		"Healthcare Payment Record",
+		filters={
+			"payment_for_doctype": "Patient Appointment",
+			"payment_for_document": appointment_id,
+		},
+		fields=["name", "status", "failure_reason", "payment_id", "amount", "amount_with_gst", "currency", "creation"],
+		order_by="creation desc",
+		limit=1,
+		ignore_permissions=True,
+	)
+	if payment_records:
+		pr = payment_records[0]
+		appt["payment_status"] = pr.status  # Pending / Captured / Failed
+		appt["payment_failure_reason"] = pr.failure_reason or ""
+		appt["payment_id"] = pr.payment_id or ""
+		appt["payment_record_amount"] = float(pr.amount_with_gst or pr.amount or 0)
+		appt["payment_record_currency"] = pr.currency or appt.get("default_currency", "")
+		appt["payment_record_name"] = pr.name
+	else:
+		appt["payment_status"] = ""
+		appt["payment_failure_reason"] = ""
+		appt["payment_id"] = ""
+
 	return appt
 
 
@@ -432,6 +457,51 @@ def get_patients_with_relations():
 
 
 @frappe.whitelist()
+def get_medical_history(patient=None):
+	"""Fetch Patient Medical Records for the portal."""
+	allowed_patients = get_patients_with_relations()
+	if not allowed_patients:
+		return []
+
+	filters = {"patient": ["in", allowed_patients]}
+	# If a specific patient is requested, ensure it's in the allowed list
+	if patient:
+		if patient not in allowed_patients:
+			frappe.throw(_("Not permitted to view records for this patient"), frappe.PermissionError)
+		filters["patient"] = patient
+
+	pmr = frappe.qb.DocType("Patient Medical Record")
+	pat = frappe.qb.DocType("Patient")
+
+	query = (
+		frappe.qb.from_(pmr)
+		.left_join(pat)
+		.on(pmr.patient == pat.name)
+		.select(
+			pmr.name,
+			pmr.patient,
+			pat.patient_name.as_("patient_name"),
+			pmr.communication_date,
+			pmr.reference_doctype,
+			pmr.reference_name,
+			pmr.subject,
+			pmr.attach
+		)
+		.where(pmr.patient.isin(allowed_patients))
+	)
+
+	if patient:
+		query = query.where(pmr.patient == patient)
+		
+	# Security: Ensure we don't fetch deleted or unauthorized rows
+	# docstatus logic is omitted as PMR doesn't usually use submittable docstatus rigidly, 
+	# but we only want active/open records.
+	query = query.orderby(pmr.communication_date, order=Order.desc)
+
+	return query.run(as_dict=True)
+
+
+@frappe.whitelist()
 def get_orders():
 	patients = get_patients_with_relations()
 
@@ -618,6 +688,7 @@ def get_data_from_service_requests(patients):
 	sample_collection_item = frappe.qb.DocType("Observation Sample Collection")
 	diagnostic_report = frappe.qb.DocType("Diagnostic Report")
 	patient = frappe.qb.DocType("Patient")
+	practitioner = frappe.qb.DocType("Healthcare Practitioner")
 
 	rows = (
 		frappe.qb.from_(service_request)
@@ -637,13 +708,15 @@ def get_data_from_service_requests(patients):
 		.on(service_request.order_group == diagnostic_report.docname)
 		.left_join(patient)
 		.on(service_request.patient == patient.name)
+		.left_join(practitioner)
+		.on(service_request.practitioner == practitioner.name)
 		.select(
 			service_request.name.as_("service_request"),
 			service_request.order_group.as_("order_name"),
 			service_request.patient,
 			service_request.patient_name,
 			service_request.practitioner.as_("ref_practitioner"),
-			service_request.practitioner_name.as_("ref_practitioner_name"),
+			practitioner.practitioner_name.as_("ref_practitioner_name"),
 			service_request.order_date,
 			service_request.billing_status,
 			service_request.template_dn.as_("observation_template"),
@@ -1245,6 +1318,8 @@ def register_patient(first_name, last_name, email, mobile, gender):
 		frappe.throw(_("First Name is required"))
 	if not email:
 		frappe.throw(_("Email is required"))
+	if not mobile:
+		frappe.throw(_("Mobile Number is required"))
 	if not gender:
 		frappe.throw(_("Gender is required"))
 	

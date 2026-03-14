@@ -1,25 +1,66 @@
 {
+  "_dayjs.min-3cc5a224.js": {
+    "file": "assets/dayjs.min-3cc5a224.js",
+    "imports": [
+      "src/patient_portal.js"
+    ]
+  },
   "src/patient_portal.css": {
-    "file": "assets/patient_portal-02f4d960.css",
+    "file": "assets/patient_portal-3c5fa605.css",
     "src": "src/patient_portal.css"
   },
   "src/patient_portal.js": {
     "css": [
-      "assets/patient_portal-02f4d960.css"
+      "assets/patient_portal-3c5fa605.css"
     ],
     "dynamicImports": [
+      "src/views/MedicalHistory.vue",
+      "src/views/PrintMedicalHistory.vue",
       "src/views/PaymentStatus.vue"
     ],
-    "file": "assets/patient_portal-98553a1a.js",
+    "file": "assets/patient_portal-005f89d1.js",
     "isEntry": true,
     "src": "src/patient_portal.js"
   },
-  "src/views/PaymentStatus.vue": {
-    "file": "assets/PaymentStatus-332b2aac.js",
+  "src/views/MedicalHistory.css": {
+    "file": "assets/MedicalHistory-341f17c3.css",
+    "src": "src/views/MedicalHistory.css"
+  },
+  "src/views/MedicalHistory.vue": {
+    "css": [
+      "assets/MedicalHistory-341f17c3.css"
+    ],
+    "file": "assets/MedicalHistory-6301147e.js",
     "imports": [
+      "_dayjs.min-3cc5a224.js",
       "src/patient_portal.js"
     ],
     "isDynamicEntry": true,
+    "src": "src/views/MedicalHistory.vue"
+  },
+  "src/views/PaymentStatus.vue": {
+    "file": "assets/PaymentStatus-89b12b45.js",
+    "imports": [
+      "src/patient_portal.js",
+      "_dayjs.min-3cc5a224.js"
+    ],
+    "isDynamicEntry": true,
     "src": "src/views/PaymentStatus.vue"
+  },
+  "src/views/PrintMedicalHistory.css": {
+    "file": "assets/PrintMedicalHistory-f2127cc0.css",
+    "src": "src/views/PrintMedicalHistory.css"
+  },
+  "src/views/PrintMedicalHistory.vue": {
+    "css": [
+      "assets/PrintMedicalHistory-f2127cc0.css"
+    ],
+    "file": "assets/PrintMedicalHistory-2d17e8f6.js",
+    "imports": [
+      "_dayjs.min-3cc5a224.js",
+      "src/patient_portal.js"
+    ],
+    "isDynamicEntry": true,
+    "src": "src/views/PrintMedicalHistory.vue"
   }
 }

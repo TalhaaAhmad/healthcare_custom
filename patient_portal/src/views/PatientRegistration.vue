@@ -74,12 +74,13 @@
 
 					<!-- Mobile -->
 					<div>
-						<label class="block text-xs font-semibold text-slate-600 uppercase tracking-wider mb-2">Mobile Number</label>
+						<label class="block text-xs font-semibold text-slate-600 uppercase tracking-wider mb-2">Mobile Number *</label>
 						<div class="relative">
 							<PhoneIcon class="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
 							<input 
 								v-model="form.mobile" 
 								type="tel" 
+								required
 								class="w-full pl-11 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all"
 								placeholder="+1 234 567 8900"
 							/>
@@ -105,10 +106,7 @@
 						</div>
 					</div>
 
-					<!-- Error Message -->
-					<div v-if="error" class="p-4 bg-red-50 border border-red-100 rounded-xl">
-						<p class="text-sm text-red-600">{{ error }}</p>
-					</div>
+
 
 					<!-- Submit Button -->
 					<button 
@@ -142,6 +140,7 @@
 
 <script setup>
 import { ref } from 'vue'
+import { toast } from 'frappe-ui'
 import { UserPlusIcon, CheckCircleIcon, LogInIcon, MailIcon, PhoneIcon, LoaderIcon } from 'lucide-vue-next'
 
 const form = ref({
@@ -166,15 +165,19 @@ async function handleSubmit() {
 	error.value = null
 	
 	if (!form.value.first_name) {
-		error.value = 'First name is required'
+		toast.error('First name is required')
 		return
 	}
 	if (!form.value.email) {
-		error.value = 'Email is required'
+		toast.error('Email is required')
+		return
+	}
+	if (!form.value.mobile) {
+		toast.error('Mobile number is required')
 		return
 	}
 	if (!form.value.gender) {
-		error.value = 'Please select your gender'
+		toast.error('Please select your gender')
 		return
 	}
 
@@ -204,12 +207,26 @@ async function handleSubmit() {
 		
 		if (!response.ok) {
 			// Handle error response
-			const errorMsg = data.exc_type 
-				? data._server_messages 
-					? JSON.parse(data._server_messages)[0]
-					: data.exception || 'Registration failed'
-				: data.message || 'Registration failed. Please try again.'
-			error.value = typeof errorMsg === 'string' ? errorMsg.replace(/<[^>]*>/g, '') : errorMsg
+			let errorMsg = 'Registration failed. Please try again.';
+			if (data._server_messages) {
+				try {
+					const messages = JSON.parse(data._server_messages);
+					let msg = messages[0];
+					if (typeof msg === 'string' && msg.startsWith('{')) {
+						const parsedMsg = JSON.parse(msg);
+						msg = parsedMsg.message || msg;
+					}
+					errorMsg = msg;
+				} catch (e) {
+					console.error("Error parsing server messages", e);
+				}
+			} else if (data.exception) {
+				errorMsg = data.exception;
+			} else if (data.message) {
+				errorMsg = data.message;
+			}
+			const formattedError = typeof errorMsg === 'string' ? errorMsg.replace(/<[^>]*>/g, '') : errorMsg
+			toast.error(String(formattedError))
 			loading.value = false
 			return
 		}
@@ -218,7 +235,7 @@ async function handleSubmit() {
 		loading.value = false
 	} catch (e) {
 		console.error('Registration error:', e)
-		error.value = 'An unexpected error occurred. Please try again.'
+		toast.error('An unexpected error occurred. Please try again.')
 		loading.value = false
 	}
 }
